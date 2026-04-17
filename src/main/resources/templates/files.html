@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>我的网盘</title>
+    <style>
+        body { font-family: Arial; padding: 20px; }
+        .header { display: flex; justify-content: space-between; align-items: center; }
+        button { margin-left: 10px; }
+    </style>
+</head>
+<body>
+<div class="header">
+    <h2>我的文件</h2>
+    <div>
+        <span th:text="${session.user.username}"></span> 你好
+        <a href="/api/user/logout">退出</a>
+    </div>
+</div>
+<hr>
+<p>文件列表将在这里显示（下一阶段实现）</p>
+</body>
+</html>

@@ -18,6 +18,22 @@ public interface FileMapper {
     @Select("SELECT * FROM file WHERE id = #{id} AND user_id = #{userId} AND deleted = FALSE")
     FileInfo findByIdAndUserId(@Param("id") Long id, @Param("userId") Long userId);
 
-    @Update("UPDATE file SET deleted = TRUE WHERE id = #{id}")
+//    @Update("UPDATE file SET deleted = TRUE WHERE id = #{id}")
+//    int softDeleteById(@Param("id") Long id);
+
+    @Update("UPDATE file SET deleted = TRUE, deleted_at = NOW() WHERE id = #{id}")
     int softDeleteById(@Param("id") Long id);
+
+    @Select("SELECT * FROM file WHERE user_id = #{userId} AND deleted = TRUE ORDER BY deleted_at DESC")
+    List<FileInfo> findRecycleBinByUserId(@Param("userId") Long userId);
+
+    @Update("UPDATE file SET deleted = FALSE, deleted_at = NULL WHERE id = #{id}")
+    int restoreById(@Param("id") Long id);
+
+    @Delete("DELETE FROM file WHERE id = #{id}")
+    int permanentDeleteById(@Param("id") Long id);
+
+    @Select("SELECT * FROM file WHERE id = #{id} AND user_id = #{userId}")
+    FileInfo findByIdAndUserIdIncludeDeleted(@Param("id") Long id, @Param("userId") Long userId);
+
 }

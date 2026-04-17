@@ -19,4 +19,9 @@ public class PageController {
     public String filesPage() {
         return "files";
     }
+
+    @GetMapping("/recycle")
+    public String recyclePage() {
+        return "recycle";
+    }
 }

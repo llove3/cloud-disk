@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>注册</title>
+    <style>
+        body { font-family: Arial; text-align: center; margin-top: 100px; }
+        input { margin: 10px; padding: 8px; width: 200px; }
+        button { padding: 8px 20px; }
+        .error { color: red; }
+        .success { color: green; }
+    </style>
+</head>
+<body>
+<h2>用户注册</h2>
+<form id="registerForm">
+    <input type="text" id="username" placeholder="用户名" required><br>
+    <input type="password" id="password" placeholder="密码" required><br>
+    <button type="submit">注册</button>
+</form>
+<p>已有账号？ <a href="/login">去登录</a></p>
+<p id="message"></p>
+
+<script>
+    document.getElementById("registerForm").addEventListener("submit", async function(e) {
+        e.preventDefault();
+        const username = document.getElementById("username").value;
+        const password = document.getElementById("password").value;
+        const resp = await fetch("/api/user/register?username=" + username + "&password=" + password, {
+            method: "POST"
+        });
+        const text = await resp.text();
+        if (text === "注册成功") {
+            document.getElementById("message").className = "success";
+            document.getElementById("message").innerText = text + "，3秒后跳转到登录页";
+            setTimeout(() => { window.location.href = "/login"; }, 3000);
+        } else {
+            document.getElementById("message").className = "error";
+            document.getElementById("message").innerText = text;
+        }
+    });
+</script>
+</body>
+</html>

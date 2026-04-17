@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -86,6 +87,29 @@ public class FileService {
         if (file != null) {
             fileMapper.softDeleteById(fileId);
             System.out.println("软删除文件，ID：" + fileId);
+        }
+    }
+
+    public List<FileInfo> listRecycleBin(Long userId) {
+        return fileMapper.findRecycleBinByUserId(userId);
+    }
+
+    public void restoreFile(Long fileId, Long userId) {
+        FileInfo file = fileMapper.findByIdAndUserIdIncludeDeleted(fileId, userId);
+        if (file != null && file.getDeleted()) {
+            fileMapper.restoreById(fileId);
+            System.out.println("还原文件成功，ID：" + fileId);
+        } else {
+            System.out.println("还原失败：文件不存在或未被删除，ID：" + fileId);
+        }
+    }
+
+    public void permanentDelete(Long fileId, Long userId) throws IOException {
+        FileInfo file = fileMapper.findByIdAndUserIdIncludeDeleted(fileId, userId);
+        if (file != null && file.getDeleted()) {
+            Path path = Paths.get(file.getFilePath());
+            Files.deleteIfExists(path);
+            fileMapper.permanentDeleteById(fileId);
         }
     }
 }

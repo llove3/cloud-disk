@@ -14,6 +14,10 @@ public class FileInfo {
     private Boolean deleted;
     private Date createdAt;
 
+    private Date deletedAt;
+    // getter 和 setter
+    public Date getDeletedAt() { return deletedAt; }
+    public void setDeletedAt(Date deletedAt) { this.deletedAt = deletedAt; }
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
     public Long getUserId() { return userId; }

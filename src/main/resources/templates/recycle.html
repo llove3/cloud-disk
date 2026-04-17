@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>回收站</title>
+    <style>
+        body { font-family: Arial; padding: 20px; }
+        .header { display: flex; justify-content: space-between; align-items: center; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+        button { margin-right: 8px; }
+        .nav { margin-bottom: 20px; }
+    </style>
+</head>
+<body>
+<div class="header">
+    <h2>回收站</h2>
+    <div>
+        <span th:text="${session.user.username}"></span> 你好
+        <a href="/files">返回网盘</a> |
+        <a href="/api/user/logout">退出</a>
+    </div>
+</div>
+
+<div class="nav">
+    <a href="/files">← 回到我的文件</a>
+</div>
+
+<table>
+    <thead>
+    <tr><th>文件名</th><th>大小</th><th>删除时间</th><th>操作</th></tr>
+    </thead>
+    <tbody id="recycleList"></tbody>
+</table>
+
+<script>
+    function formatSize(bytes) {
+        if (bytes === 0) return '0 B';
+        const k = 1024;
+        const sizes = ['B', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return (bytes / Math.pow(k, i)).toFixed(2) + ' ' + sizes[i];
+    }
+
+    function loadRecycleBin() {
+        fetch('/api/recycle/list')
+            .then(res => res.json())
+            .then(files => {
+                const tbody = document.getElementById('recycleList');
+                tbody.innerHTML = '';
+                if (files.length === 0) {
+                    const row = tbody.insertRow();
+                    row.insertCell(0).colSpan = 4;
+                    row.insertCell(0).innerText = '回收站为空';
+                    return;
+                }
+                files.forEach(file => {
+                    const row = tbody.insertRow();
+                    row.insertCell(0).innerText = file.fileName;
+                    row.insertCell(1).innerText = formatSize(file.fileSize);
+                    row.insertCell(2).innerText = new Date(file.deletedAt).toLocaleString();
+                    const actions = row.insertCell(3);
+                    const restoreBtn = document.createElement('button');
+                    restoreBtn.innerText = '还原';
+                    restoreBtn.onclick = () => {
+                        fetch('/api/recycle/restore?fileId=' + file.id, { method: 'POST' })
+                            .then(() => loadRecycleBin());
+                    };
+                    const permanentBtn = document.createElement('button');
+                    permanentBtn.innerText = '彻底删除';
+                    permanentBtn.onclick = () => {
+                        if (confirm('彻底删除后将无法恢复，确定吗？')) {
+                            fetch('/api/recycle/permanent?fileId=' + file.id, { method: 'POST' })
+                                .then(() => loadRecycleBin());
+                        }
+                    };
+                    actions.appendChild(restoreBtn);
+                    actions.appendChild(permanentBtn);
+                });
+            });
+    }
+
+    loadRecycleBin();
+</script>
+</body>
+</html>

@@ -42,4 +42,6 @@ public interface FileMapper {
     @Update("UPDATE file SET file_size=#{fileSize}, file_path=#{filePath}, file_md5=#{fileMd5}, version=#{version} WHERE id=#{id}")
     int update(FileInfo file);
 
+    @Select("SELECT * FROM file WHERE id = #{id}")
+    FileInfo findById(@Param("id") Long id);
 }

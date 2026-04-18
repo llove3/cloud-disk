@@ -91,6 +91,42 @@
                             });
                     };
 
+                    const shareBtn = document.createElement('button');
+                    shareBtn.innerText = '分享';
+                    shareBtn.onclick = () => {
+                        const password = prompt('设置提取码（可选，留空则无需密码）：');
+                        if (password === null) return;
+                        const daysInput = prompt('设置有效期天数（可选，留空则永久有效）：');
+                        if (daysInput === null) return;
+                        const days = daysInput ? parseInt(daysInput) : null;
+                        if (daysInput && (isNaN(days) || days <= 0)) {
+                            alert('有效期必须为正整数');
+                            return;
+                        }
+
+                        const params = new URLSearchParams();
+                        params.append('fileId', file.id);
+                        if (password) params.append('password', password);
+                        if (days) params.append('expireDays', days);
+
+                        fetch('/api/share/create', {
+                            method: 'POST',
+                            body: params
+                        })
+                            .then(res => res.json())
+                            .then(share => {
+                                const link = window.location.origin + '/s/' + share.shareCode;
+                                const msg = `分享链接已生成：\n${link}\n${share.password ? '提取码：' + share.password : '无提取码'}`;
+                                alert(msg);
+                                if (navigator.clipboard) {
+                                    navigator.clipboard.writeText(link).then(() => {
+                                        console.log('链接已复制到剪贴板');
+                                    });
+                                }
+                            })
+                            .catch(err => alert('生成分享失败：' + err));
+                    };
+
                     const deleteBtn = document.createElement('button');
                     deleteBtn.innerText = '删除';
                     deleteBtn.onclick = () => {
@@ -100,6 +136,7 @@
 
                     actions.appendChild(downloadBtn);
                     actions.appendChild(versionsBtn);
+                    actions.appendChild(shareBtn);
                     actions.appendChild(deleteBtn);
                 });
             });

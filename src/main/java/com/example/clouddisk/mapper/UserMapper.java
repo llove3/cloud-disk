@@ -11,4 +11,12 @@ public interface UserMapper {
 
     @Select("SELECT * FROM user WHERE username = #{username}")
     User findByUsername(String username);
+
+    @Select("SELECT * FROM user WHERE id = #{id}")
+    User findById(@Param("id") Long id);
+    @Update("UPDATE user SET used_space = used_space + #{size} WHERE id = #{userId}")
+    int addUsedSpace(@Param("userId") Long userId, @Param("size") Long size);
+
+    @Update("UPDATE user SET used_space = used_space - #{size} WHERE id = #{userId}")
+    int subUsedSpace(@Param("userId") Long userId, @Param("size") Long size);
 }

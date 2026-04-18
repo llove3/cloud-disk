@@ -4,6 +4,7 @@ import com.example.clouddisk.entity.FileInfo;
 import com.example.clouddisk.entity.FileVersion;
 import com.example.clouddisk.mapper.FileMapper;
 import com.example.clouddisk.mapper.FileVersionMapper;
+import com.example.clouddisk.mapper.UserMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -27,6 +28,9 @@ public class FileService {
     @Autowired
     private FileVersionMapper fileVersionMapper;
 
+    @Autowired
+    private UserMapper userMapper;
+
     @Value("${file.upload-dir}")
     private String uploadDir;
 
@@ -41,7 +45,6 @@ public class FileService {
         }
         return Base64.getEncoder().encodeToString(md.digest());
     }
-
 
     @Transactional
     public FileInfo saveFile(Long userId, Long parentId, MultipartFile file) throws Exception {
@@ -82,6 +85,7 @@ public class FileService {
             fileInfo.setDeleted(false);
             int rows = fileMapper.insert(fileInfo);
             System.out.println("新增文件，影响行数：" + rows + "，生成ID：" + fileInfo.getId());
+            userMapper.addUsedSpace(userId, file.getSize());
             return fileInfo;
         } else {
             FileVersion version = new FileVersion();
@@ -99,6 +103,7 @@ public class FileService {
             existing.setVersion(existing.getVersion() + 1);
             fileMapper.update(existing);
             System.out.println("覆盖上传，版本号更新为：" + existing.getVersion());
+            userMapper.addUsedSpace(userId, file.getSize());
             return existing;
         }
     }
@@ -150,6 +155,7 @@ public class FileService {
             fileVersionMapper.deleteByFileId(fileId);
             fileMapper.permanentDeleteById(fileId);
             System.out.println("彻底删除文件完成，ID：" + fileId);
+            userMapper.subUsedSpace(userId, file.getFileSize());
         }
     }
 

@@ -4,6 +4,7 @@ import com.example.clouddisk.entity.FileInfo;
 import com.example.clouddisk.entity.FileVersion;
 import com.example.clouddisk.entity.User;
 import com.example.clouddisk.service.FileService;
+import com.example.clouddisk.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.http.HttpHeaders;
@@ -27,19 +28,27 @@ public class FileController {
 
     @Autowired
     private FileService fileService;
+    @Autowired
+    private UserService userService;
 
     @PostMapping("/upload")
     public String upload(@RequestParam("file") MultipartFile file,
                          @RequestParam(value = "parentId", defaultValue = "0") Long parentId,
                          HttpSession session) {
-        User user = (User) session.getAttribute("user");
+        User sessionUser = (User) session.getAttribute("user");
         System.out.println("=== 上传请求开始 ===");
-        System.out.println("当前登录用户：" + (user == null ? "null" : user.getUsername() + ", id=" + user.getId()));
-        if (user == null) {
+        System.out.println("当前登录用户：" + (sessionUser == null ? "null" : sessionUser.getUsername() + ", id=" + sessionUser.getId()));
+        if (sessionUser == null) {
             return "请先登录";
         }
+
+        User fullUser = userService.findById(sessionUser.getId());
+        if (fullUser.getUsedSpace() + file.getSize() > fullUser.getTotalSpace()) {
+            return "空间不足";
+        }
+
         try {
-            FileInfo saved = fileService.saveFile(user.getId(), parentId, file);
+            FileInfo saved = fileService.saveFile(fullUser.getId(), parentId, file);
             System.out.println("上传成功，文件ID：" + saved.getId());
             return "上传成功";
         } catch (Exception e) {

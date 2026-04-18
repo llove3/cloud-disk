@@ -7,6 +7,9 @@ import org.springframework.web.bind.annotation.*;
 
 import jakarta.servlet.http.HttpSession;
 
+import java.util.HashMap;
+import java.util.Map;
+
 @RestController
 @RequestMapping("/api/user")
 public class UserController {
@@ -39,5 +42,20 @@ public class UserController {
     @GetMapping("/info")
     public User info(HttpSession session) {
         return (User) session.getAttribute("user");
+    }
+
+    @GetMapping("/space")
+    public Map<String, Object> getSpaceInfo(HttpSession session) {
+        User user = (User) session.getAttribute("user");
+        Map<String, Object> result = new HashMap<>();
+        if (user == null) {
+            result.put("used", 0L);
+            result.put("total", 0L);
+            return result;
+        }
+        User fullUser = userService.findById(user.getId());
+        result.put("used", fullUser.getUsedSpace());
+        result.put("total", fullUser.getTotalSpace());
+        return result;
     }
 }

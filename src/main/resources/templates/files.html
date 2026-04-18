@@ -21,6 +21,10 @@
         <a href="/recycle">回收站</a> |
         <a href="/api/user/logout">退出</a>
     </div>
+    <div style="display: flex; align-items: center;">
+        <span id="spaceInfo" style="margin-right: 20px;"></span>
+        <progress id="spaceProgress" value="0" max="100" style="width: 200px;"></progress>
+    </div>
 </div>
 
 <div class="upload-area">
@@ -131,7 +135,10 @@
                     deleteBtn.innerText = '删除';
                     deleteBtn.onclick = () => {
                         fetch('/api/file/delete?fileId=' + file.id, { method: 'POST' })
-                            .then(() => loadFileList());
+                            .then(() => {
+                                loadFileList();
+                                loadSpaceInfo();
+                            });
                     };
 
                     actions.appendChild(downloadBtn);
@@ -162,6 +169,58 @@
             });
     };
 
+
+
+    function formatSizeForDisplay(bytes) {
+        if (bytes === 0) return '0 B';
+        const k = 1024;
+        const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return (bytes / Math.pow(k, i)).toFixed(2) + ' ' + sizes[i];
+    }
+
+    function loadSpaceInfo() {
+        fetch('/api/user/space')
+            .then(res => res.json())
+            .then(data => {
+                const used = data.used || 0;
+                const total = data.total || 0;
+                const percent = total > 0 ? (used / total) * 100 : 0;
+                document.getElementById('spaceInfo').innerText =
+                    formatSizeForDisplay(used) + ' / ' + formatSizeForDisplay(total);
+                document.getElementById('spaceProgress').value = percent;
+            });
+    }
+
+    document.getElementById('uploadBtn').onclick = () => {
+        const fileInput = document.getElementById('fileInput');
+        const file = fileInput.files[0];
+        if (!file) {
+            alert('请选择文件');
+            return;
+        }
+        fetch('/api/user/space')
+            .then(res => res.json())
+            .then(data => {
+                if (data.used + file.size > data.total) {
+                    alert('空间不足，无法上传');
+                    return;
+                }
+                const formData = new FormData();
+                formData.append('file', file);
+                fetch('/api/file/upload', { method: 'POST', body: formData })
+                    .then(res => res.text())
+                    .then(msg => {
+                        document.getElementById('uploadMsg').innerText = msg;
+                        if (msg === '上传成功') {
+                            loadFileList();
+                            loadSpaceInfo();
+                            fileInput.value = '';
+                        }
+                    });
+            });
+    };
+    loadFileList();
     loadFileList();
 </script>
 </body>

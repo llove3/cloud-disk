@@ -8,6 +8,8 @@ public class User {
     private String password;
     private String salt;
     private Date createdAt;
+    private Long totalSpace;
+    private Long usedSpace;
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -19,4 +21,8 @@ public class User {
     public void setSalt(String salt) { this.salt = salt; }
     public Date getCreatedAt() { return createdAt; }
     public void setCreatedAt(Date createdAt) { this.createdAt = createdAt; }
+    public Long getTotalSpace() { return totalSpace; }
+    public void setTotalSpace(Long totalSpace) { this.totalSpace = totalSpace; }
+    public Long getUsedSpace() { return usedSpace; }
+    public void setUsedSpace(Long usedSpace) { this.usedSpace = usedSpace; }
 }

@@ -57,18 +57,49 @@
                     row.insertCell(1).innerText = formatSize(file.fileSize);
                     row.insertCell(2).innerText = new Date(file.createdAt).toLocaleString();
                     const actions = row.insertCell(3);
+
                     const downloadBtn = document.createElement('button');
                     downloadBtn.innerText = '下载';
                     downloadBtn.onclick = () => {
                         window.location.href = '/api/file/download?fileId=' + file.id;
                     };
+
+                    const versionsBtn = document.createElement('button');
+                    versionsBtn.innerText = '版本';
+                    versionsBtn.onclick = () => {
+                        fetch('/api/file/versions?fileId=' + file.id)
+                            .then(res => res.json())
+                            .then(versions => {
+                                if (!versions || versions.length === 0) {
+                                    alert('暂无历史版本');
+                                    return;
+                                }
+                                let msg = '历史版本列表：\n';
+                                versions.forEach(v => {
+                                    msg += '版本 ' + v.versionNumber + '：' + v.fileName + '，大小 ' + formatSize(v.fileSize) + '，时间 ' + new Date(v.createdAt).toLocaleString() + '\n';
+                                });
+                                msg += '\n输入版本号进行回滚：';
+                                const inputVer = prompt(msg);
+                                if (inputVer && !isNaN(inputVer)) {
+                                    fetch('/api/file/rollback?fileId=' + file.id + '&version=' + inputVer, { method: 'POST' })
+                                        .then(res => res.text())
+                                        .then(msg => {
+                                            alert(msg);
+                                            loadFileList();
+                                        });
+                                }
+                            });
+                    };
+
                     const deleteBtn = document.createElement('button');
                     deleteBtn.innerText = '删除';
                     deleteBtn.onclick = () => {
                         fetch('/api/file/delete?fileId=' + file.id, { method: 'POST' })
                             .then(() => loadFileList());
                     };
+
                     actions.appendChild(downloadBtn);
+                    actions.appendChild(versionsBtn);
                     actions.appendChild(deleteBtn);
                 });
             });

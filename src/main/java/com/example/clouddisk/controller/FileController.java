@@ -1,6 +1,7 @@
 package com.example.clouddisk.controller;
 
 import com.example.clouddisk.entity.FileInfo;
+import com.example.clouddisk.entity.FileVersion;
 import com.example.clouddisk.entity.User;
 import com.example.clouddisk.service.FileService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -87,5 +88,29 @@ public class FileController {
         }
         fileService.deleteFile(fileId, user.getId());
         return "删除成功";
+    }
+
+    @GetMapping("/versions")
+    public List<FileVersion> getVersions(@RequestParam Long fileId, HttpSession session) {
+        User user = (User) session.getAttribute("user");
+        if (user == null) {
+            return null;
+        }
+        return fileService.getFileVersions(fileId, user.getId());
+    }
+
+    @PostMapping("/rollback")
+    public String rollback(@RequestParam Long fileId, @RequestParam Integer version, HttpSession session) {
+        User user = (User) session.getAttribute("user");
+        if (user == null) {
+            return "请先登录";
+        }
+        try {
+            fileService.rollbackToVersion(fileId, user.getId(), version);
+            return "回滚成功";
+        } catch (Exception e) {
+            e.printStackTrace();
+            return "回滚失败：" + e.getMessage();
+        }
     }
 }

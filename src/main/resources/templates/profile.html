@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <title>个人信息</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #f1f5f9;
+            color: #1e293b;
+            padding: 24px 32px;
+            min-height: 100vh;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 28px;
+        }
+        .header h2 {
+            font-size: 28px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: #0f172a;
+        }
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            background: white;
+            padding: 8px 16px;
+            border-radius: 40px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.03);
+        }
+        .user-info a {
+            color: #3b82f6;
+            text-decoration: none;
+            font-weight: 500;
+            margin: 0 4px;
+        }
+        .profile-card {
+            background: white;
+            border-radius: 24px;
+            padding: 32px;
+            max-width: 600px;
+            margin: 0 auto;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.04);
+        }
+        .avatar-section {
+            display: flex;
+            align-items: center;
+            gap: 24px;
+            margin-bottom: 32px;
+        }
+        .avatar-img {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 3px solid #3b82f6;
+        }
+        .field-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 0;
+            border-bottom: 1px solid #eef2f6;
+        }
+        .field-label {
+            font-weight: 500;
+            color: #64748b;
+        }
+        .field-value {
+            font-weight: 500;
+        }
+        .edit-btn {
+            background: none;
+            border: 1px solid #cbd5e1;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 13px;
+            cursor: pointer;
+            color: #475569;
+            transition: all 0.15s;
+        }
+        .edit-btn:hover {
+            background: #3b82f6;
+            border-color: #3b82f6;
+            color: white;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 999;
+            left: 0; top: 0;
+            width: 100%; height: 100%;
+            background-color: rgba(0,0,0,0.4);
+        }
+        .modal-content {
+            background: white;
+            margin: 10% auto;
+            padding: 28px;
+            border-radius: 24px;
+            width: 400px;
+            max-width: 90%;
+        }
+        .modal-content h3 { margin-bottom: 20px; }
+        .modal-content input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            margin-bottom: 16px;
+        }
+        .modal-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+        .modal-actions button {
+            padding: 10px 20px;
+            border-radius: 30px;
+            border: none;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        #toast {
+            visibility: hidden;
+            min-width: 280px;
+            background: #1e293b;
+            color: white;
+            text-align: center;
+            border-radius: 60px;
+            padding: 14px 24px;
+            position: fixed;
+            left: 50%;
+            bottom: 30px;
+            transform: translateX(-50%);
+            z-index: 1000;
+        }
+        #toast.show {
+            visibility: visible;
+            animation: toastFade 3s;
+        }
+        @keyframes toastFade {
+            0% { opacity: 0; bottom: 10px; }
+            10% { opacity: 1; bottom: 30px; }
+            90% { opacity: 1; bottom: 30px; }
+            100% { opacity: 0; bottom: 10px; }
+        }
+    </style>
+</head>
+<body>
+<div class="header">
+    <h2><i class="fas fa-user-circle"></i> 个人信息</h2>
+    <div class="user-info">
+        <a href="/files"><i class="fas fa-cloud"></i> 返回网盘</a>
+        <a href="/api/user/logout"><i class="fas fa-sign-out-alt"></i> 退出</a>
+    </div>
+</div>
+
+<div class="profile-card">
+    <div class="avatar-section">
+        <img id="avatarImg" class="avatar-img" src="/images/default.png" alt="头像">
+        <span style="color: #64748b;">默认头像</span>
+    </div>
+    <div class="field-row">
+        <span class="field-label">用户名</span>
+        <span class="field-value" id="displayUsername"></span>
+        <button class="edit-btn" id="editUsernameBtn"><i class="fas fa-pen"></i> 编辑</button>
+    </div>
+    <div class="field-row">
+        <span class="field-label">QQ邮箱</span>
+        <span class="field-value" id="displayEmail"></span>
+        <button class="edit-btn" id="changeEmailBtn"><i class="fas fa-exchange-alt"></i> 换绑</button>
+    </div>
+    <div class="field-row">
+        <span class="field-label">密码</span>
+        <span class="field-value">••••••••</span>
+        <button class="edit-btn" id="changePasswordBtn"><i class="fas fa-key"></i> 修改</button>
+    </div>
+</div>
+
+<div id="toast"></div>
+
+<div id="usernameModal" class="modal">
+    <div class="modal-content">
+        <h3>修改用户名</h3>
+        <input type="text" id="newUsernameInput" placeholder="请输入新用户名">
+        <div class="modal-actions">
+            <button onclick="closeUsernameModal()" style="background:#f1f5f9;">取消</button>
+            <button onclick="submitUsername()" style="background:#3b82f6; color:white;">确定</button>
+        </div>
+    </div>
+</div>
+
+<div id="emailModal" class="modal">
+    <div class="modal-content">
+        <h3>换绑邮箱</h3>
+        <input type="email" id="newEmailInput" placeholder="请输入新QQ邮箱">
+        <div style="display: flex; gap: 10px;">
+            <input type="text" id="emailCodeInput" placeholder="验证码" style="flex:1;">
+            <button onclick="sendEmailCode()" id="sendEmailCodeBtn" style="padding:0 16px; background:#3b82f6; color:white; border:none; border-radius:12px;">获取</button>
+        </div>
+        <div class="modal-actions">
+            <button onclick="closeEmailModal()" style="background:#f1f5f9;">取消</button>
+            <button onclick="submitEmail()" style="background:#3b82f6; color:white;">确定</button>
+        </div>
+    </div>
+</div>
+
+<div id="passwordModal" class="modal">
+    <div class="modal-content">
+        <h3>修改密码</h3>
+        <input type="password" id="oldPasswordInput" placeholder="原密码">
+        <input type="password" id="newPasswordInput" placeholder="新密码">
+        <div class="modal-actions">
+            <button onclick="closePasswordModal()" style="background:#f1f5f9;">取消</button>
+            <button onclick="submitPassword()" style="background:#3b82f6; color:white;">确定</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    let userInfo = {};
+    let emailCountdown = 0;
+
+    function showToast(msg) {
+        const toast = document.getElementById('toast');
+        toast.innerText = msg;
+        toast.className = 'show';
+        setTimeout(() => { toast.className = toast.className.replace('show', ''); }, 3000);
+    }
+
+    async function loadUserInfo() {
+        const resp = await fetch('/api/user/info');
+        if (resp.ok) {
+            userInfo = await resp.json();
+            document.getElementById('displayUsername').innerText = userInfo.username || '';
+            document.getElementById('displayEmail').innerText = userInfo.email || '';
+        }
+    }
+
+    loadUserInfo();
+
+    document.getElementById('editUsernameBtn').onclick = () => {
+        document.getElementById('newUsernameInput').value = userInfo.username;
+        document.getElementById('usernameModal').style.display = 'block';
+    };
+    function closeUsernameModal() { document.getElementById('usernameModal').style.display = 'none'; }
+    async function submitUsername() {
+        const newName = document.getElementById('newUsernameInput').value.trim();
+        if (!newName) { showToast('用户名不能为空'); return; }
+        const params = new URLSearchParams();
+        params.append('newUsername', newName);
+        const resp = await fetch('/api/user/update-username', { method: 'POST', body: params });
+        const text = await resp.text();
+        showToast(text);
+        if (text === '用户名修改成功') {
+            closeUsernameModal();
+            loadUserInfo();
+        }
+    }
+
+    document.getElementById('changeEmailBtn').onclick = () => {
+        document.getElementById('newEmailInput').value = '';
+        document.getElementById('emailCodeInput').value = '';
+        document.getElementById('emailModal').style.display = 'block';
+    };
+    function closeEmailModal() { document.getElementById('emailModal').style.display = 'none'; }
+    async function sendEmailCode() {
+        const newEmail = document.getElementById('newEmailInput').value.trim();
+        if (!newEmail) { showToast('请输入新邮箱'); return; }
+        if (emailCountdown > 0) return;
+        const resp = await fetch('/api/user/send-code?email=' + encodeURIComponent(newEmail), { method: 'POST' });
+        const text = await resp.text();
+        if (text === '验证码已发送') {
+            emailCountdown = 60;
+            const btn = document.getElementById('sendEmailCodeBtn');
+            btn.disabled = true;
+            const timer = setInterval(() => {
+                emailCountdown--;
+                btn.innerText = emailCountdown + 's';
+                if (emailCountdown <= 0) {
+                    clearInterval(timer);
+                    btn.disabled = false;
+                    btn.innerText = '获取';
+                }
+            }, 1000);
+            showToast('验证码已发送');
+        } else {
+            showToast(text);
+        }
+    }
+    async function submitEmail() {
+        const newEmail = document.getElementById('newEmailInput').value.trim();
+        const code = document.getElementById('emailCodeInput').value.trim();
+        if (!newEmail || !code) { showToast('请填写完整'); return; }
+        const params = new URLSearchParams();
+        params.append('newEmail', newEmail);
+        params.append('code', code);
+        const resp = await fetch('/api/user/update-email', { method: 'POST', body: params });
+        const text = await resp.text();
+        showToast(text);
+        if (text === '邮箱换绑成功') {
+            closeEmailModal();
+            loadUserInfo();
+        }
+    }
+
+    document.getElementById('changePasswordBtn').onclick = () => {
+        document.getElementById('oldPasswordInput').value = '';
+        document.getElementById('newPasswordInput').value = '';
+        document.getElementById('passwordModal').style.display = 'block';
+    };
+    function closePasswordModal() { document.getElementById('passwordModal').style.display = 'none'; }
+    async function submitPassword() {
+        const oldPwd = document.getElementById('oldPasswordInput').value;
+        const newPwd = document.getElementById('newPasswordInput').value;
+        if (!oldPwd || !newPwd) { showToast('请填写密码'); return; }
+        const params = new URLSearchParams();
+        params.append('oldPassword', oldPwd);
+        params.append('newPassword', newPwd);
+        const resp = await fetch('/api/user/change-password', { method: 'POST', body: params });
+        const text = await resp.text();
+        showToast(text);
+        if (text === '密码修改成功') {
+            closePasswordModal();
+        }
+    }
+
+    window.onclick = function(event) {
+        if (event.target.classList.contains('modal')) {
+            event.target.style.display = 'none';
+        }
+    }
+</script>
+</body>
+</html>

@@ -31,17 +31,61 @@
         h2 { font-size: 28px; font-weight: 600; color: #1e293b; margin-bottom: 24px; }
         .input-group { margin-bottom: 20px; text-align: left; }
         .input-group label { display: block; font-size: 14px; font-weight: 500; color: #475569; margin-bottom: 6px; }
-        .input-group input {
-            width: 100%; padding: 12px 16px; font-size: 16px;
-            border: 2px solid #e2e8f0; border-radius: 12px; outline: none;
-            background: #f8fafc; transition: all 0.2s;
+        .email-wrapper {
+            display: flex;
+            align-items: center;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            background: #f8fafc;
+            transition: all 0.2s;
         }
-        .input-group input:focus { border-color: #667eea; background: white; box-shadow: 0 0 0 4px rgba(102,126,234,0.1); }
+        .email-wrapper:focus-within {
+            border-color: #667eea;
+            background: white;
+            box-shadow: 0 0 0 4px rgba(102,126,234,0.1);
+        }
+        .email-wrapper input {
+            flex: 1;
+            padding: 12px 0 12px 16px;
+            font-size: 16px;
+            border: none;
+            outline: none;
+            background: transparent;
+        }
+        .email-suffix {
+            padding: 12px 16px 12px 0;
+            color: #64748b;
+            font-size: 16px;
+            font-weight: 500;
+        }
+        .input-group input[type="password"] {
+            width: 100%;
+            padding: 12px 16px;
+            font-size: 16px;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            outline: none;
+            background: #f8fafc;
+            transition: all 0.2s;
+        }
+        .input-group input[type="password"]:focus {
+            border-color: #667eea;
+            background: white;
+            box-shadow: 0 0 0 4px rgba(102,126,234,0.1);
+        }
         button {
-            width: 100%; padding: 14px; font-size: 16px; font-weight: 600;
-            color: white; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border: none; border-radius: 12px; cursor: pointer; transition: all 0.15s;
-            box-shadow: 0 4px 12px rgba(102,126,234,0.3); margin-top: 8px;
+            width: 100%;
+            padding: 14px;
+            font-size: 16px;
+            font-weight: 600;
+            color: white;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.15s;
+            box-shadow: 0 4px 12px rgba(102,126,234,0.3);
+            margin-top: 8px;
         }
         button:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(102,126,234,0.4); }
         .link-text { margin-top: 24px; color: #64748b; font-size: 14px; }
@@ -56,7 +100,10 @@
     <form id="loginForm">
         <div class="input-group">
             <label><i class="fas fa-envelope"></i> QQ邮箱</label>
-            <input type="email" id="email" placeholder="请输入QQ邮箱" required>
+            <div class="email-wrapper">
+                <input type="text" id="qqNumber" placeholder="请输入QQ号" required>
+                <span class="email-suffix">@qq.com</span>
+            </div>
         </div>
         <div class="input-group">
             <label><i class="fas fa-lock"></i> 密码</label>
@@ -72,7 +119,12 @@
 <script>
     document.getElementById("loginForm").addEventListener("submit", async function(e) {
         e.preventDefault();
-        const email = document.getElementById("email").value;
+        const qqNumber = document.getElementById("qqNumber").value.trim();
+        if (!qqNumber) {
+            document.getElementById("message").innerText = "请输入QQ号";
+            return;
+        }
+        const email = qqNumber + "@qq.com";
         const password = document.getElementById("password").value;
         const resp = await fetch("/api/user/login?email=" + encodeURIComponent(email) + "&password=" + encodeURIComponent(password), { method: "POST" });
         const text = await resp.text();

@@ -152,4 +152,8 @@ public class UserService {
         String newEncryptedPwd = md5(newPassword, newSalt);
         return userMapper.updatePassword(userId, newEncryptedPwd, newSalt) > 0;
     }
+
+    public void updateAvatar(Long userId, String avatarUrl) {
+        userMapper.updateAvatar(userId, avatarUrl);
+    }
 }

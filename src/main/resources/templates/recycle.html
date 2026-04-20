@@ -11,6 +11,13 @@
         th { background-color: #f2f2f2; }
         button { margin-right: 8px; }
         .nav { margin-bottom: 20px; }
+        #toast { visibility: hidden; min-width: 250px; background-color: #333; color: #fff; text-align: center; border-radius: 4px; padding: 12px; position: fixed; left: 50%; bottom: 30px; transform: translateX(-50%); z-index: 1000; }
+        #toast.show { visibility: visible; animation: fadein 0.5s, fadeout 0.5s 2.5s; }
+        @keyframes fadein { from {bottom: 0; opacity: 0;} to {bottom: 30px; opacity: 1;} }
+        @keyframes fadeout { from {bottom: 30px; opacity: 1;} to {bottom: 0; opacity: 0;} }
+        .confirm-dialog { background: white; padding: 20px; border-radius: 8px; width: 300px; margin: 15% auto; text-align: center; }
+        .confirm-dialog button { margin: 10px; padding: 6px 20px; }
+        .modal { display: none; position: fixed; z-index: 999; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.4); }
     </style>
 </head>
 <body>
@@ -22,19 +29,50 @@
         <a href="/api/user/logout">退出</a>
     </div>
 </div>
-
 <div class="nav">
     <a href="/files">← 回到我的文件</a>
 </div>
-
 <table>
     <thead>
     <tr><th>文件名</th><th>大小</th><th>删除时间</th><th>操作</th></tr>
     </thead>
     <tbody id="recycleList"></tbody>
 </table>
-
+<div id="toast"></div>
+<div id="confirmModal" class="modal">
+    <div class="confirm-dialog">
+        <p id="confirmMessage">确定要执行此操作吗？</p>
+        <button id="confirmYes">确定</button>
+        <button id="confirmNo">取消</button>
+    </div>
+</div>
 <script>
+    let confirmCallback = null;
+
+    function showToast(msg) {
+        const toast = document.getElementById('toast');
+        toast.innerText = msg;
+        toast.className = 'show';
+        setTimeout(() => { toast.className = toast.className.replace('show', ''); }, 3000);
+    }
+
+    function showConfirm(message, onConfirm) {
+        document.getElementById('confirmMessage').innerText = message;
+        document.getElementById('confirmModal').style.display = 'block';
+        confirmCallback = onConfirm;
+    }
+
+    function closeConfirm() {
+        document.getElementById('confirmModal').style.display = 'none';
+        confirmCallback = null;
+    }
+
+    document.getElementById('confirmYes').onclick = function() {
+        if (confirmCallback) confirmCallback();
+        closeConfirm();
+    };
+    document.getElementById('confirmNo').onclick = closeConfirm;
+
     function formatSize(bytes) {
         if (bytes === 0) return '0 B';
         const k = 1024;
@@ -51,8 +89,9 @@
                 tbody.innerHTML = '';
                 if (files.length === 0) {
                     const row = tbody.insertRow();
-                    row.insertCell(0).colSpan = 4;
-                    row.insertCell(0).innerText = '回收站为空';
+                    const cell = row.insertCell(0);
+                    cell.colSpan = 4;
+                    cell.innerText = '回收站为空';
                     return;
                 }
                 files.forEach(file => {
@@ -65,20 +104,27 @@
                     restoreBtn.innerText = '还原';
                     restoreBtn.onclick = () => {
                         fetch('/api/recycle/restore?fileId=' + file.id, { method: 'POST' })
-                            .then(() => loadRecycleBin());
+                            .then(res => res.text())
+                            .then(msg => { showToast(msg); loadRecycleBin(); });
                     };
                     const permanentBtn = document.createElement('button');
                     permanentBtn.innerText = '彻底删除';
                     permanentBtn.onclick = () => {
-                        if (confirm('彻底删除后将无法恢复，确定吗？')) {
+                        showConfirm('彻底删除后将无法恢复，确定吗？', function() {
                             fetch('/api/recycle/permanent?fileId=' + file.id, { method: 'POST' })
-                                .then(() => loadRecycleBin());
-                        }
+                                .then(res => res.text())
+                                .then(msg => { showToast(msg); loadRecycleBin(); });
+                        });
                     };
                     actions.appendChild(restoreBtn);
                     actions.appendChild(permanentBtn);
                 });
             });
+    }
+
+    window.onclick = function(event) {
+        const confirmModal = document.getElementById('confirmModal');
+        if (event.target === confirmModal) closeConfirm();
     }
 
     loadRecycleBin();

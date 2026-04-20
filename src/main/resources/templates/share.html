@@ -8,7 +8,10 @@
         .container { max-width: 500px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 8px; }
         input { padding: 8px; width: 200px; margin: 10px; }
         button { padding: 8px 20px; }
-        .error { color: red; }
+        #toast { visibility: hidden; min-width: 250px; background-color: #333; color: #fff; text-align: center; border-radius: 4px; padding: 12px; position: fixed; left: 50%; bottom: 30px; transform: translateX(-50%); z-index: 1000; }
+        #toast.show { visibility: visible; animation: fadein 0.5s, fadeout 0.5s 2.5s; }
+        @keyframes fadein { from {bottom: 0; opacity: 0;} to {bottom: 30px; opacity: 1;} }
+        @keyframes fadeout { from {bottom: 30px; opacity: 1;} to {bottom: 0; opacity: 0;} }
     </style>
 </head>
 <body>
@@ -17,13 +20,18 @@
     <p id="fileName">加载中...</p>
     <div id="pwdSection" style="display:none;">
         <input type="text" id="password" placeholder="请输入提取码">
-        <br>
     </div>
     <button id="downloadBtn">下载文件</button>
-    <p id="message" class="error"></p>
 </div>
-
+<div id="toast"></div>
 <script>
+    function showToast(msg) {
+        const toast = document.getElementById('toast');
+        toast.innerText = msg;
+        toast.className = 'show';
+        setTimeout(() => { toast.className = toast.className.replace('show', ''); }, 3000);
+    }
+
     const path = window.location.pathname;
     const code = path.split('/').pop();
 
@@ -34,7 +42,6 @@
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
             body: 'password=' + encodeURIComponent(password)
         });
-
         if (resp.ok) {
             const blob = await resp.blob();
             const disposition = resp.headers.get('Content-Disposition');
@@ -46,7 +53,6 @@
                 const match = disposition.match(/filename="?([^";]+)"?/);
                 if (match) filename = match[1];
             }
-
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
@@ -57,7 +63,7 @@
             window.URL.revokeObjectURL(url);
         } else {
             const text = await resp.text();
-            document.getElementById('message').innerText = text || '下载失败';
+            showToast(text || '下载失败');
         }
     };
 
@@ -68,8 +74,10 @@
                 const text = await testResp.text();
                 if (text.includes('提取码')) {
                     document.getElementById('pwdSection').style.display = 'block';
+                    document.getElementById('fileName').innerText = '该分享需要提取码';
+                } else {
+                    document.getElementById('fileName').innerText = '点击下载按钮获取文件';
                 }
-                document.getElementById('fileName').innerText = '该分享需要提取码';
             } else {
                 document.getElementById('fileName').innerText = '点击下载按钮获取文件';
             }

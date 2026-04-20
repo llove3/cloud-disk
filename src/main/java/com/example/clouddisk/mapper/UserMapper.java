@@ -13,10 +13,18 @@ public interface UserMapper {
     User findByUsername(String username);
 
     @Select("SELECT * FROM user WHERE id = #{id}")
+    @Options(flushCache = Options.FlushCachePolicy.TRUE)
     User findById(@Param("id") Long id);
+
     @Update("UPDATE user SET used_space = used_space + #{size} WHERE id = #{userId}")
     int addUsedSpace(@Param("userId") Long userId, @Param("size") Long size);
 
     @Update("UPDATE user SET used_space = used_space - #{size} WHERE id = #{userId}")
     int subUsedSpace(@Param("userId") Long userId, @Param("size") Long size);
+
+    @Update("UPDATE user SET used_space = #{usedSpace} WHERE id = #{userId}")
+    int updateUsedSpace(@Param("userId") Long userId, @Param("usedSpace") Long usedSpace);
+
+    @Update("UPDATE user SET id = id WHERE id = #{id}")
+    void clearLocalCache();
 }

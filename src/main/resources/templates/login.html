@@ -19,15 +19,12 @@
 </form>
 <p>没有账号？ <a href="/register">立即注册</a></p>
 <p id="message" class="error"></p>
-
 <script>
     document.getElementById("loginForm").addEventListener("submit", async function(e) {
         e.preventDefault();
         const username = document.getElementById("username").value;
         const password = document.getElementById("password").value;
-        const resp = await fetch("/api/user/login?username=" + username + "&password=" + password, {
-            method: "POST"
-        });
+        const resp = await fetch("/api/user/login?username=" + username + "&password=" + password, { method: "POST" });
         const text = await resp.text();
         if (text === "登录成功") {
             window.location.href = "/files";

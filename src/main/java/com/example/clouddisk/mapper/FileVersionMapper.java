@@ -21,4 +21,14 @@ public interface FileVersionMapper {
 
     @Delete("DELETE FROM file_version WHERE file_id = #{fileId}")
     int deleteByFileId(@Param("fileId") Long fileId);
+
+    @Select("SELECT * FROM file_version WHERE id = #{id}")
+    FileVersion findById(@Param("id") Long id);
+
+    @Delete("DELETE FROM file_version WHERE id = #{id}")
+    int deleteById(@Param("id") Long id);
+
+
+    @Select("SELECT fv.* FROM file_version fv JOIN file f ON fv.file_id = f.id WHERE f.user_id = #{userId}")
+    List<FileVersion> findVersionsByUserId(@Param("userId") Long userId);
 }

@@ -20,15 +20,12 @@
 </form>
 <p>已有账号？ <a href="/login">去登录</a></p>
 <p id="message"></p>
-
 <script>
     document.getElementById("registerForm").addEventListener("submit", async function(e) {
         e.preventDefault();
         const username = document.getElementById("username").value;
         const password = document.getElementById("password").value;
-        const resp = await fetch("/api/user/register?username=" + username + "&password=" + password, {
-            method: "POST"
-        });
+        const resp = await fetch("/api/user/register?username=" + username + "&password=" + password, { method: "POST" });
         const text = await resp.text();
         if (text === "注册成功") {
             document.getElementById("message").className = "success";

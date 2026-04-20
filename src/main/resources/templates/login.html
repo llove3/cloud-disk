@@ -2,23 +2,140 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <title>登录</title>
     <style>
-        body { font-family: Arial; text-align: center; margin-top: 100px; }
-        input { margin: 10px; padding: 8px; width: 200px; }
-        button { padding: 8px 20px; }
-        .error { color: red; }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .container {
+            background: rgba(255, 255, 255, 0.98);
+            backdrop-filter: blur(10px);
+            padding: 40px;
+            border-radius: 24px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1), 0 6px 12px rgba(0, 0, 0, 0.05);
+            width: 100%;
+            max-width: 420px;
+            text-align: center;
+            animation: fadeIn 0.5s ease;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        h2 {
+            font-size: 28px;
+            font-weight: 600;
+            color: #1e293b;
+            margin-bottom: 24px;
+            letter-spacing: -0.5px;
+        }
+        .input-group {
+            margin-bottom: 20px;
+            text-align: left;
+        }
+        .input-group label {
+            display: block;
+            font-size: 14px;
+            font-weight: 500;
+            color: #475569;
+            margin-bottom: 6px;
+        }
+        .input-group input {
+            width: 100%;
+            padding: 12px 16px;
+            font-size: 16px;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            outline: none;
+            transition: all 0.2s;
+            background: #f8fafc;
+        }
+        .input-group input:focus {
+            border-color: #667eea;
+            background: white;
+            box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+        }
+        button {
+            width: 100%;
+            padding: 14px;
+            font-size: 16px;
+            font-weight: 600;
+            color: white;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: transform 0.15s, box-shadow 0.15s;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+            margin-top: 8px;
+        }
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+        }
+        button:active {
+            transform: translateY(0);
+        }
+        .link-text {
+            margin-top: 24px;
+            color: #64748b;
+            font-size: 14px;
+        }
+        .link-text a {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 500;
+            margin-left: 6px;
+        }
+        .link-text a:hover {
+            text-decoration: underline;
+        }
+        .message {
+            margin-top: 16px;
+            min-height: 24px;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        .message.error {
+            color: #ef4444;
+        }
+        .message.success {
+            color: #10b981;
+        }
     </style>
 </head>
 <body>
-<h2>用户登录</h2>
-<form id="loginForm">
-    <input type="text" id="username" placeholder="用户名" required><br>
-    <input type="password" id="password" placeholder="密码" required><br>
-    <button type="submit">登录</button>
-</form>
-<p>没有账号？ <a href="/register">立即注册</a></p>
-<p id="message" class="error"></p>
+<div class="container">
+    <h2><i class="fas fa-cloud-upload-alt" style="margin-right: 8px; color: #667eea;"></i>云盘登录</h2>
+    <form id="loginForm">
+        <div class="input-group">
+            <label><i class="fas fa-user" style="margin-right: 6px;"></i>用户名</label>
+            <input type="text" id="username" placeholder="请输入用户名" required>
+        </div>
+        <div class="input-group">
+            <label><i class="fas fa-lock" style="margin-right: 6px;"></i>密码</label>
+            <input type="password" id="password" placeholder="请输入密码" required>
+        </div>
+        <button type="submit"><i class="fas fa-sign-in-alt" style="margin-right: 8px;"></i>登录</button>
+    </form>
+    <div class="link-text">
+        还没有账号？<a href="/register">立即注册 <i class="fas fa-arrow-right"></i></a>
+    </div>
+    <p id="message" class="message error"></p>
+</div>
 <script>
     document.getElementById("loginForm").addEventListener("submit", async function(e) {
         e.preventDefault();

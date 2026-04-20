@@ -67,8 +67,12 @@
 <div class="header">
     <h2><i class="fas fa-cloud"></i> 我的网盘</h2>
     <div class="user-info">
-        <a href="/profile"><img class="avatar-icon" src="/images/default.png" alt="头像"></a>
-        <span th:text="${session.user.username}"></span>
+        <a href="/profile">
+            <img id="headerAvatar" class="avatar-icon"
+                 th:src="${session.user.avatar != null ? session.user.avatar : '/images/default.png'}"
+                 alt="头像">
+        </a>
+        <span id="headerUsername" th:text="${session.user.username}"></span>
         <span class="logout-link" onclick="logoutAndClose()"><i class="fas fa-sign-out-alt"></i> 退出</span>
         <span class="logout-link" onclick="switchAccount()"><i class="fas fa-user-friends"></i> 切换账号</span>
     </div>
@@ -366,8 +370,32 @@
             fetch('/api/user/logout').then(() => { window.location.href = '/login'; });
         });
     }
+
+    function fetchUserInfo() {
+        fetch('/api/user/info')
+            .then(res => {
+                if (!res.ok) throw new Error('获取用户信息失败');
+                return res.json();
+            })
+            .then(user => {
+                if (user) {
+                    const avatarImg = document.getElementById('headerAvatar');
+                    const usernameSpan = document.getElementById('headerUsername');
+                    if (avatarImg) {
+                        avatarImg.src = user.avatar ? user.avatar : '/images/default.png';
+                    }
+                    if (usernameSpan) {
+                        usernameSpan.innerText = user.username || '';
+                    }
+                }
+            })
+            .catch(err => console.error('获取用户信息出错:', err));
+    }
+
+    fetchUserInfo();
     loadSpaceInfo();
     loadFileList();
+
 </script>
 </body>
 </html>

@@ -64,6 +64,11 @@
             object-fit: cover;
             border: 3px solid #3b82f6;
         }
+        .avatar-upload {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
         .field-row {
             display: flex;
             align-items: center;
@@ -129,6 +134,12 @@
             font-weight: 600;
             cursor: pointer;
         }
+        .hint {
+            font-size: 12px;
+            color: #ef4444;
+            margin-top: -12px;
+            margin-bottom: 12px;
+        }
         #toast {
             visibility: hidden;
             min-width: 280px;
@@ -167,7 +178,12 @@
 <div class="profile-card">
     <div class="avatar-section">
         <img id="avatarImg" class="avatar-img" src="/images/default.png" alt="头像">
-        <span style="color: #64748b;">默认头像</span>
+        <div class="avatar-upload">
+            <input type="file" id="avatarInput" accept="image/jpeg,image/png,image/gif" style="display:none;">
+            <button class="edit-btn" onclick="document.getElementById('avatarInput').click()"><i class="fas fa-camera"></i> 选择图片</button>
+            <button class="edit-btn" id="uploadAvatarBtn" style="display:none;">上传新头像</button>
+            <span style="font-size:12px; color:#64748b;">支持 jpg/png/gif，≤2MB</span>
+        </div>
     </div>
     <div class="field-row">
         <span class="field-label">用户名</span>
@@ -192,6 +208,7 @@
     <div class="modal-content">
         <h3>修改用户名</h3>
         <input type="text" id="newUsernameInput" placeholder="请输入新用户名">
+        <div class="hint">支持中文、字母、数字、下划线，1-20位</div>
         <div class="modal-actions">
             <button onclick="closeUsernameModal()" style="background:#f1f5f9;">取消</button>
             <button onclick="submitUsername()" style="background:#3b82f6; color:white;">确定</button>
@@ -229,6 +246,7 @@
 <script>
     let userInfo = {};
     let emailCountdown = 0;
+    let selectedAvatarFile = null;
 
     function showToast(msg) {
         const toast = document.getElementById('toast');
@@ -243,10 +261,51 @@
             userInfo = await resp.json();
             document.getElementById('displayUsername').innerText = userInfo.username || '';
             document.getElementById('displayEmail').innerText = userInfo.email || '';
+            const avatarImg = document.getElementById('avatarImg');
+            if (userInfo.avatar) {
+                avatarImg.src = userInfo.avatar;
+            } else {
+                avatarImg.src = '/images/default.png';
+            }
         }
     }
 
     loadUserInfo();
+
+    document.getElementById('avatarInput').addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        if (file.size > 2 * 1024 * 1024) {
+            showToast('文件大小不能超过2MB');
+            return;
+        }
+        const ext = file.name.substring(file.name.lastIndexOf('.')).toLowerCase();
+        if (!['.jpg', '.jpeg', '.png', '.gif'].includes(ext)) {
+            showToast('仅支持 jpg, jpeg, png, gif 格式');
+            return;
+        }
+        selectedAvatarFile = file;
+        const reader = new FileReader();
+        reader.onload = (e) => { document.getElementById('avatarImg').src = e.target.result; };
+        reader.readAsDataURL(file);
+        document.getElementById('uploadAvatarBtn').style.display = 'inline-block';
+    });
+
+    document.getElementById('uploadAvatarBtn').onclick = async function() {
+        if (!selectedAvatarFile) return;
+        const formData = new FormData();
+        formData.append('avatar', selectedAvatarFile);
+        const resp = await fetch('/api/user/upload-avatar', { method: 'POST', body: formData });
+        const text = await resp.text();
+        if (text.startsWith('/avatars/')) {
+            showToast('头像上传成功');
+            loadUserInfo();
+            document.getElementById('uploadAvatarBtn').style.display = 'none';
+            selectedAvatarFile = null;
+        } else {
+            showToast(text);
+        }
+    };
 
     document.getElementById('editUsernameBtn').onclick = () => {
         document.getElementById('newUsernameInput').value = userInfo.username;
@@ -256,6 +315,10 @@
     async function submitUsername() {
         const newName = document.getElementById('newUsernameInput').value.trim();
         if (!newName) { showToast('用户名不能为空'); return; }
+        if (!newName.match(/^[a-zA-Z0-9_\u4e00-\u9fa5]{1,20}$/)) {
+            showToast('用户名只能包含中文、字母、数字、下划线，1-20位');
+            return;
+        }
         const params = new URLSearchParams();
         params.append('newUsername', newName);
         const resp = await fetch('/api/user/update-username', { method: 'POST', body: params });

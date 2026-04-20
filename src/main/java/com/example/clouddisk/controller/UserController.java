@@ -3,18 +3,25 @@ package com.example.clouddisk.controller;
 import com.example.clouddisk.entity.User;
 import com.example.clouddisk.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import jakarta.servlet.http.HttpSession;
-
+import java.io.File;
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/user")
 public class UserController {
     @Autowired
     private UserService userService;
+
+    @Value("${file.upload-dir}")
+    private String uploadDir;
 
     @PostMapping("/send-code")
     public String sendCode(@RequestParam String email) {
@@ -91,6 +98,9 @@ public class UserController {
     public String updateUsername(@RequestParam String newUsername, HttpSession session) {
         User user = (User) session.getAttribute("user");
         if (user == null) return "请先登录";
+        if (!newUsername.matches("^[a-zA-Z0-9_\\u4e00-\\u9fa5]{1,20}$")) {
+            return "用户名只能包含中文、字母、数字、下划线，长度1-20";
+        }
         boolean ok = userService.updateUsername(user.getId(), newUsername);
         if (ok) {
             User updated = userService.findById(user.getId());
@@ -123,5 +133,39 @@ public class UserController {
         if (user == null) return "请先登录";
         boolean ok = userService.changePassword(user.getId(), oldPassword, newPassword);
         return ok ? "密码修改成功" : "原密码错误";
+    }
+
+    @PostMapping("/upload-avatar")
+    public String uploadAvatar(@RequestParam("avatar") MultipartFile file, HttpSession session) {
+        User user = (User) session.getAttribute("user");
+        if (user == null) return "请先登录";
+        if (file.isEmpty()) return "文件为空";
+        String originalFilename = file.getOriginalFilename();
+        String ext = "";
+        if (originalFilename != null && originalFilename.contains(".")) {
+            ext = originalFilename.substring(originalFilename.lastIndexOf("."));
+        }
+        if (!ext.matches(".(jpg|jpeg|png|gif)")) {
+            return "仅支持 jpg, jpeg, png, gif 格式";
+        }
+        if (file.getSize() > 2 * 1024 * 1024) {
+            return "头像大小不能超过2MB";
+        }
+        String avatarDir = uploadDir + "avatars/";
+        File dir = new File(avatarDir);
+        if (!dir.exists()) dir.mkdirs();
+        String newFileName = user.getId() + "_" + UUID.randomUUID().toString() + ext;
+        File dest = new File(avatarDir + newFileName);
+        try {
+            file.transferTo(dest);
+            String avatarUrl = "/avatars/" + newFileName;
+            userService.updateAvatar(user.getId(), avatarUrl);
+            User updated = userService.findById(user.getId());
+            session.setAttribute("user", updated);
+            return avatarUrl;
+        } catch (IOException e) {
+            e.printStackTrace();
+            return "上传失败";
+        }
     }
 }

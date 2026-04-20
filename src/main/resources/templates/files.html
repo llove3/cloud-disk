@@ -6,358 +6,76 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <title>我的网盘</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: #f1f5f9;
-            color: #1e293b;
-            padding: 24px 32px;
-            min-height: 100vh;
-            position: relative;
-        }
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 28px;
-        }
-        .header h2 {
-            font-size: 28px;
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            color: #0f172a;
-        }
-        .header h2 i {
-            color: #3b82f6;
-        }
-        .user-info {
-            display: flex;
-            align-items: center;
-            gap: 16px;
-            background: white;
-            padding: 8px 16px;
-            border-radius: 40px;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.03);
-        }
-        .user-info a {
-            color: #3b82f6;
-            text-decoration: none;
-            font-weight: 500;
-            margin: 0 4px;
-        }
-        .user-info a:hover {
-            text-decoration: underline;
-        }
-        .upload-area {
-            background: white;
-            padding: 16px 24px;
-            border-radius: 20px;
-            display: flex;
-            align-items: center;
-            gap: 16px;
-            margin-bottom: 20px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.02);
-            border: 1px solid #e2e8f0;
-        }
-        .upload-area input[type="file"] {
-            flex: 1;
-            padding: 8px;
-            border: 2px dashed #cbd5e1;
-            border-radius: 12px;
-            background: #f8fafc;
-            cursor: pointer;
-        }
-        .upload-btn {
-            background: #3b82f6;
-            color: white;
-            border: none;
-            padding: 12px 28px;
-            border-radius: 30px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s;
-            box-shadow: 0 4px 10px rgba(59,130,246,0.2);
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        .upload-btn:hover {
-            background: #2563eb;
-            transform: translateY(-2px);
-            box-shadow: 0 8px 18px rgba(59,130,246,0.25);
-        }
-        .list-header {
-            display: flex;
-            justify-content: flex-end;
-            margin-bottom: 16px;
-        }
-        .space-card {
-            background: white;
-            padding: 8px 20px;
-            border-radius: 40px;
-            display: inline-flex;
-            align-items: center;
-            gap: 16px;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.03);
-            border: 1px solid #eef2f6;
-        }
-        .space-text {
-            font-size: 14px;
-            font-weight: 500;
-            color: #475569;
-        }
-        progress {
-            width: 180px;
-            height: 8px;
-            border-radius: 10px;
-            overflow: hidden;
-        }
-        progress::-webkit-progress-bar {
-            background-color: #e2e8f0;
-            border-radius: 10px;
-        }
-        progress::-webkit-progress-value {
-            background: linear-gradient(90deg, #3b82f6, #8b5cf6);
-            border-radius: 10px;
-        }
-        .calibrate-btn {
-            background: none;
-            border: none;
-            color: #64748b;
-            cursor: pointer;
-            font-size: 16px;
-            padding: 4px 8px;
-            border-radius: 20px;
-            transition: background 0.2s;
-        }
-        .calibrate-btn:hover {
-            background: #f1f5f9;
-            color: #3b82f6;
-        }
-        .file-table-container {
-            background: white;
-            border-radius: 24px;
-            padding: 8px 0;
-            box-shadow: 0 8px 24px rgba(0,0,0,0.04);
-            border: 1px solid #eef2f6;
-            overflow-x: auto;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-        th {
-            text-align: left;
-            padding: 18px 20px;
-            background: #f8fafc;
-            font-weight: 600;
-            font-size: 14px;
-            color: #475569;
-            border-bottom: 1px solid #e2e8f0;
-        }
-        td {
-            padding: 16px 20px;
-            border-bottom: 1px solid #f1f5f9;
-            color: #334155;
-        }
-        tr:last-child td {
-            border-bottom: none;
-        }
-        tr:hover td {
-            background: #fafbff;
-        }
-        .action-buttons {
-            display: flex;
-            gap: 8px;
-            flex-wrap: wrap;
-        }
-        .action-btn {
-            background: none;
-            border: 1px solid #e2e8f0;
-            padding: 6px 12px;
-            border-radius: 20px;
-            font-size: 13px;
-            font-weight: 500;
-            color: #475569;
-            cursor: pointer;
-            transition: all 0.15s;
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
-        }
-        .action-btn:hover {
-            background: #3b82f6;
-            border-color: #3b82f6;
-            color: white;
-        }
-        .recycle-fab {
-            position: fixed;
-            bottom: 30px;
-            right: 30px;
-            background: #1e293b;
-            color: white;
-            width: 56px;
-            height: 56px;
-            border-radius: 30px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 0 8px 20px rgba(0,0,0,0.15);
-            transition: all 0.2s;
-            text-decoration: none;
-            z-index: 100;
-        }
-        .recycle-fab:hover {
-            background: #0f172a;
-            transform: scale(1.05);
-        }
-        .recycle-fab i {
-            font-size: 24px;
-        }
-        #toast {
-            visibility: hidden;
-            min-width: 280px;
-            background: #1e293b;
-            color: white;
-            text-align: center;
-            border-radius: 60px;
-            padding: 14px 24px;
-            position: fixed;
-            left: 50%;
-            bottom: 30px;
-            transform: translateX(-50%);
-            z-index: 1000;
-            font-weight: 500;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-        }
-        #toast.show {
-            visibility: visible;
-            animation: toastFade 3s;
-        }
-        @keyframes toastFade {
-            0% { opacity: 0; bottom: 10px; }
-            10% { opacity: 1; bottom: 30px; }
-            90% { opacity: 1; bottom: 30px; }
-            100% { opacity: 0; bottom: 10px; }
-        }
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 999;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0,0,0,0.4);
-        }
-        .modal-content {
-            background: white;
-            margin: 5% auto;
-            padding: 28px;
-            border-radius: 28px;
-            width: 520px;
-            max-width: 90%;
-            box-shadow: 0 30px 60px rgba(0,0,0,0.12);
-        }
-        .modal-content h3 {
-            font-size: 22px;
-            margin-bottom: 20px;
-            color: #0f172a;
-        }
-        .version-item {
-            background: #f8fafc;
-            padding: 16px;
-            border-radius: 16px;
-            margin-bottom: 12px;
-            border: 1px solid #eef2f6;
-        }
-        .version-item button {
-            background: white;
-            border: 1px solid #cbd5e1;
-            padding: 6px 16px;
-            border-radius: 30px;
-            margin-right: 8px;
-            margin-top: 8px;
-            cursor: pointer;
-            font-weight: 500;
-            transition: all 0.15s;
-        }
-        .version-item button:hover {
-            background: #3b82f6;
-            border-color: #3b82f6;
-            color: white;
-        }
-        .confirm-dialog {
-            background: white;
-            padding: 32px;
-            border-radius: 28px;
-            width: 360px;
-            margin: 15% auto;
-            text-align: center;
-        }
-        .confirm-dialog button {
-            padding: 10px 28px;
-            margin: 8px;
-            border-radius: 40px;
-            border: none;
-            font-weight: 600;
-            cursor: pointer;
-        }
-        #confirmYes {
-            background: #3b82f6;
-            color: white;
-        }
-        #confirmNo {
-            background: #f1f5f9;
-            color: #1e293b;
-        }
-        .close {
-            font-size: 24px;
-            color: #94a3b8;
-            float: right;
-            cursor: pointer;
-        }
-        .close:hover {
-            color: #0f172a;
-        }
-        #shareContent input {
-            width: 100%;
-            padding: 12px 16px;
-            border: 2px solid #e2e8f0;
-            border-radius: 16px;
-            margin: 8px 0 16px;
-            font-size: 14px;
-            background: #fafcff;
-        }
-        #shareContent button {
-            background: #3b82f6;
-            color: white;
-            border: none;
-            padding: 12px 24px;
-            border-radius: 40px;
-            font-weight: 600;
-            cursor: pointer;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', sans-serif; background: #f1f5f9; color: #1e293b; padding: 24px 32px; min-height: 100vh; position: relative; }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 28px; }
+        .header h2 { font-size: 28px; font-weight: 600; display: flex; align-items: center; gap: 10px; color: #0f172a; }
+        .header h2 i { color: #3b82f6; }
+        .user-info { display: flex; align-items: center; gap: 16px; background: white; padding: 8px 16px; border-radius: 40px; box-shadow: 0 2px 6px rgba(0,0,0,0.03); }
+        .user-info a, .user-info span.logout-link { color: #3b82f6; text-decoration: none; font-weight: 500; margin: 0 4px; cursor: pointer; }
+        .user-info a:hover, .user-info span.logout-link:hover { text-decoration: underline; }
+        .avatar-icon { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; border: 1px solid #e2e8f0; cursor: pointer; }
+        .upload-area { background: white; padding: 16px 24px; border-radius: 20px; display: flex; align-items: center; gap: 16px; margin-bottom: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.02); border: 1px solid #e2e8f0; }
+        .upload-area input[type="file"] { flex: 1; padding: 8px; border: 2px dashed #cbd5e1; border-radius: 12px; background: #f8fafc; cursor: pointer; }
+        .upload-btn { background: #3b82f6; color: white; border: none; padding: 12px 28px; border-radius: 30px; font-weight: 600; cursor: pointer; transition: all 0.2s; box-shadow: 0 4px 10px rgba(59,130,246,0.2); display: flex; align-items: center; gap: 8px; }
+        .upload-btn:hover { background: #2563eb; transform: translateY(-2px); box-shadow: 0 8px 18px rgba(59,130,246,0.25); }
+        .list-header { display: flex; justify-content: flex-end; margin-bottom: 16px; }
+        .space-card { background: white; padding: 8px 20px; border-radius: 40px; display: inline-flex; align-items: center; gap: 16px; box-shadow: 0 2px 6px rgba(0,0,0,0.03); border: 1px solid #eef2f6; }
+        .space-text { font-size: 14px; font-weight: 500; color: #475569; }
+        progress { width: 180px; height: 8px; border-radius: 10px; overflow: hidden; }
+        progress::-webkit-progress-bar { background-color: #e2e8f0; border-radius: 10px; }
+        progress::-webkit-progress-value { background: linear-gradient(90deg, #3b82f6, #8b5cf6); border-radius: 10px; }
+        .calibrate-btn { background: none; border: none; color: #64748b; cursor: pointer; font-size: 16px; padding: 4px 8px; border-radius: 20px; transition: background 0.2s; }
+        .calibrate-btn:hover { background: #f1f5f9; color: #3b82f6; }
+        .file-table-container { background: white; border-radius: 24px; padding: 8px 0; box-shadow: 0 8px 24px rgba(0,0,0,0.04); border: 1px solid #eef2f6; overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; }
+        th { text-align: left; padding: 18px 20px; background: #f8fafc; font-weight: 600; font-size: 14px; color: #475569; border-bottom: 1px solid #e2e8f0; }
+        td { padding: 16px 20px; border-bottom: 1px solid #f1f5f9; color: #334155; }
+        tr:last-child td { border-bottom: none; }
+        tr:hover td { background: #fafbff; }
+        .action-buttons { display: flex; gap: 8px; flex-wrap: wrap; }
+        .action-btn { background: none; border: 1px solid #e2e8f0; padding: 6px 12px; border-radius: 20px; font-size: 13px; font-weight: 500; color: #475569; cursor: pointer; transition: all 0.15s; display: inline-flex; align-items: center; gap: 4px; }
+        .action-btn:hover { background: #3b82f6; border-color: #3b82f6; color: white; }
+        .recycle-fab { position: fixed; bottom: 30px; right: 30px; background: #1e293b; color: white; width: 56px; height: 56px; border-radius: 30px; display: flex; align-items: center; justify-content: center; box-shadow: 0 8px 20px rgba(0,0,0,0.15); transition: all 0.2s; text-decoration: none; z-index: 100; }
+        .recycle-fab:hover { background: #0f172a; transform: scale(1.05); }
+        #toast { visibility: hidden; min-width: 280px; background: #1e293b; color: white; text-align: center; border-radius: 60px; padding: 14px 24px; position: fixed; left: 50%; bottom: 30px; transform: translateX(-50%); z-index: 1000; font-weight: 500; box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
+        #toast.show { visibility: visible; animation: toastFade 3s; }
+        @keyframes toastFade { 0% { opacity: 0; bottom: 10px; } 10% { opacity: 1; bottom: 30px; } 90% { opacity: 1; bottom: 30px; } 100% { opacity: 0; bottom: 10px; } }
+        .modal { display: none; position: fixed; z-index: 999; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.4); }
+        .modal-content { background: white; margin: 5% auto; padding: 28px; border-radius: 28px; width: 520px; max-width: 90%; box-shadow: 0 30px 60px rgba(0,0,0,0.12); }
+        .modal-content h3 { font-size: 22px; margin-bottom: 20px; color: #0f172a; }
+        .version-item { background: #f8fafc; padding: 16px; border-radius: 16px; margin-bottom: 12px; border: 1px solid #eef2f6; }
+        .version-item button { background: white; border: 1px solid #cbd5e1; padding: 6px 16px; border-radius: 30px; margin-right: 8px; margin-top: 8px; cursor: pointer; font-weight: 500; transition: all 0.15s; }
+        .version-item button:hover { background: #3b82f6; border-color: #3b82f6; color: white; }
+        .confirm-dialog { background: white; padding: 32px; border-radius: 28px; width: 360px; margin: 15% auto; text-align: center; }
+        .confirm-dialog button { padding: 10px 28px; margin: 8px; border-radius: 40px; border: none; font-weight: 600; cursor: pointer; }
+        #confirmYes { background: #3b82f6; color: white; }
+        #confirmNo { background: #f1f5f9; color: #1e293b; }
+        .close { font-size: 24px; color: #94a3b8; float: right; cursor: pointer; }
+        .close:hover { color: #0f172a; }
+        #shareContent input { width: 100%; padding: 12px 16px; border: 2px solid #e2e8f0; border-radius: 16px; margin: 8px 0 16px; font-size: 14px; background: #fafcff; }
+        #shareContent button { background: #3b82f6; color: white; border: none; padding: 12px 24px; border-radius: 40px; font-weight: 600; cursor: pointer; }
+        .rename-dialog { background: white; padding: 28px; border-radius: 24px; width: 400px; margin: 20% auto; text-align: left; }
+        .rename-dialog h3 { margin-bottom: 16px; color: #0f172a; }
+        .rename-dialog input { width: 100%; padding: 12px 16px; border: 2px solid #e2e8f0; border-radius: 12px; font-size: 14px; margin-bottom: 20px; }
+        .rename-dialog button { padding: 10px 20px; border-radius: 30px; border: none; font-weight: 600; cursor: pointer; margin-right: 10px; }
+        #renameConfirm { background: #3b82f6; color: white; }
+        #renameCancel { background: #f1f5f9; color: #1e293b; }
     </style>
 </head>
 <body>
 <div class="header">
     <h2><i class="fas fa-cloud"></i> 我的网盘</h2>
     <div class="user-info">
-        <i class="fas fa-user-circle"></i>
+        <a href="/profile"><img class="avatar-icon" src="/images/default.png" alt="头像"></a>
         <span th:text="${session.user.username}"></span>
-        <a href="/api/user/logout"><i class="fas fa-sign-out-alt"></i> 退出</a>
+        <span class="logout-link" onclick="logoutAndClose()"><i class="fas fa-sign-out-alt"></i> 退出</span>
+        <span class="logout-link" onclick="switchAccount()"><i class="fas fa-user-friends"></i> 切换账号</span>
     </div>
 </div>
 
 <div class="upload-area">
-    <input type="file" id="fileInput">
+    <input type="file" id="fileInput" multiple>
     <button id="uploadBtn" class="upload-btn"><i class="fas fa-upload"></i>上传文件</button>
 </div>
 
@@ -372,19 +90,25 @@
 
 <div class="file-table-container">
     <table id="fileTable">
-        <thead>
-        <tr><th>文件名</th><th>大小</th><th>上传时间</th><th>操作</th></tr>
-        </thead>
+        <thead><tr><th>文件名</th><th>大小</th><th>上传时间</th><th>操作</th></tr></thead>
         <tbody id="fileList"></tbody>
     </table>
 </div>
 
-<a href="/recycle" class="recycle-fab" title="回收站">
-    <i class="fas fa-trash-alt"></i>
-</a>
+<a href="/recycle" class="recycle-fab" title="回收站"><i class="fas fa-trash-alt"></i></a>
 
 <div id="toast"></div>
-
+<div id="renameModal" class="modal">
+    <div class="rename-dialog">
+        <h3>重命名文件</h3>
+        <p id="renameOriginalName" style="margin-bottom: 8px; color: #64748b;"></p>
+        <input type="text" id="renameInput" placeholder="输入新文件名">
+        <div style="text-align: right;">
+            <button id="renameCancel">取消</button>
+            <button id="renameConfirm">确定</button>
+        </div>
+    </div>
+</div>
 <div id="versionModal" class="modal">
     <div class="modal-content">
         <span class="close" onclick="closeVersionModal()">&times;</span>
@@ -392,7 +116,6 @@
         <div id="versionListContainer"></div>
     </div>
 </div>
-
 <div id="shareModal" class="modal">
     <div class="modal-content">
         <span class="close" onclick="closeShareModal()">&times;</span>
@@ -400,7 +123,6 @@
         <div id="shareContent"></div>
     </div>
 </div>
-
 <div id="confirmModal" class="modal">
     <div class="confirm-dialog">
         <p id="confirmMessage">确定要执行此操作吗？</p>
@@ -412,6 +134,7 @@
 <script>
     let currentFileIdForVersion = null;
     let confirmCallback = null;
+    let renamePromiseResolve = null;
 
     function parseLocalTime(dateStr) {
         if (!dateStr) return '';
@@ -421,31 +144,26 @@
         if (!isNaN(d.getTime())) return d.toLocaleString();
         return dateStr;
     }
-
     function showToast(msg) {
         const toast = document.getElementById('toast');
         toast.innerText = msg;
         toast.className = 'show';
         setTimeout(() => { toast.className = toast.className.replace('show', ''); }, 3000);
     }
-
     function showConfirm(message, onConfirm) {
         document.getElementById('confirmMessage').innerText = message;
         document.getElementById('confirmModal').style.display = 'block';
         confirmCallback = onConfirm;
     }
-
     function closeConfirm() {
         document.getElementById('confirmModal').style.display = 'none';
         confirmCallback = null;
     }
-
     document.getElementById('confirmYes').onclick = function() {
         if (confirmCallback) confirmCallback();
         closeConfirm();
     };
     document.getElementById('confirmNo').onclick = closeConfirm;
-
     function formatSize(bytes) {
         if (bytes === 0) return '0 B';
         const k = 1024;
@@ -453,31 +171,22 @@
         const i = Math.floor(Math.log(bytes) / Math.log(k));
         return (bytes / Math.pow(k, i)).toFixed(2) + ' ' + sizes[i];
     }
-
     function updateSpaceDisplay(used, total) {
         const percent = total > 0 ? (used / total) * 100 : 0;
         document.getElementById('spaceInfo').innerText = formatSize(used) + ' / ' + formatSize(total);
         document.getElementById('spaceProgress').value = percent;
     }
-
     function loadSpaceInfo() {
         fetch('/api/user/space')
             .then(res => res.json())
-            .then(data => {
-                updateSpaceDisplay(data.used || 0, data.total || 0);
-            });
+            .then(data => { updateSpaceDisplay(data.used || 0, data.total || 0); });
     }
-
     function calibrateSpace() {
         showToast('正在校准空间...');
         fetch('/api/user/recalculate-space', { method: 'POST' })
             .then(res => res.text())
-            .then(msg => {
-                showToast(msg);
-                loadSpaceInfo();
-            });
+            .then(msg => { showToast(msg); loadSpaceInfo(); });
     }
-
     document.getElementById('calibrateSpaceBtn').onclick = calibrateSpace;
 
     function loadFileList() {
@@ -510,11 +219,7 @@
                     deleteBtn.onclick = () => {
                         fetch('/api/file/delete?fileId=' + file.id, { method: 'POST' })
                             .then(res => res.text())
-                            .then(msg => {
-                                showToast(msg);
-                                loadFileList();
-                                loadSpaceInfo();
-                            });
+                            .then(msg => { showToast(msg); loadFileList(); loadSpaceInfo(); });
                     };
                     actions.appendChild(downloadBtn);
                     actions.appendChild(versionsBtn);
@@ -524,30 +229,60 @@
             });
     }
 
-    document.getElementById('uploadBtn').onclick = () => {
+    async function requestRename(originalName) {
+        return new Promise((resolve, reject) => {
+            document.getElementById('renameOriginalName').innerText = '原文件名：' + originalName;
+            document.getElementById('renameInput').value = originalName;
+            document.getElementById('renameModal').style.display = 'block';
+            renamePromiseResolve = resolve;
+        });
+    }
+    function closeRenameModal(confirmed, newName) {
+        document.getElementById('renameModal').style.display = 'none';
+        if (confirmed && renamePromiseResolve) renamePromiseResolve(newName);
+        renamePromiseResolve = null;
+    }
+    document.getElementById('renameConfirm').onclick = function() {
+        const newName = document.getElementById('renameInput').value.trim();
+        if (newName === '') { showToast('文件名不能为空'); return; }
+        closeRenameModal(true, newName);
+    };
+    document.getElementById('renameCancel').onclick = function() { closeRenameModal(false); };
+
+    async function uploadSingleFile(file, newFileName) {
+        try {
+            const spaceResp = await fetch('/api/user/space');
+            const spaceData = await spaceResp.json();
+            if (spaceData.used + file.size > spaceData.total) {
+                showToast(`空间不足，无法上传 "${newFileName}"`);
+                return false;
+            }
+            const formData = new FormData();
+            formData.append('file', file, newFileName);
+            const uploadResp = await fetch('/api/file/upload', { method: 'POST', body: formData });
+            const result = await uploadResp.json();
+            showToast(result.message);
+            if (result.success) { await loadSpaceInfo(); return true; }
+            return false;
+        } catch (err) {
+            showToast('上传失败：' + err.message);
+            return false;
+        }
+    }
+
+    document.getElementById('uploadBtn').onclick = async () => {
         const fileInput = document.getElementById('fileInput');
-        const file = fileInput.files[0];
-        if (!file) { showToast('请选择文件'); return; }
-        fetch('/api/user/space')
-            .then(res => res.json())
-            .then(data => {
-                if (data.used + file.size > data.total) {
-                    showToast('空间不足，无法上传');
-                    return;
-                }
-                const formData = new FormData();
-                formData.append('file', file);
-                fetch('/api/file/upload', { method: 'POST', body: formData })
-                    .then(res => res.json())
-                    .then(result => {
-                        showToast(result.message);
-                        if (result.success) {
-                            updateSpaceDisplay(result.usedSpace, result.totalSpace);
-                            loadFileList();
-                            fileInput.value = '';
-                        }
-                    });
-            });
+        const files = Array.from(fileInput.files);
+        if (files.length === 0) { showToast('请选择文件'); return; }
+        for (const file of files) {
+            try {
+                const newName = await requestRename(file.name);
+                await uploadSingleFile(file, newName);
+            } catch (e) { continue; }
+        }
+        loadFileList();
+        fileInput.value = '';
+        loadSpaceInfo();
     };
 
     function openVersionModal(fileId) {
@@ -573,35 +308,19 @@
                 document.getElementById('versionModal').style.display = 'block';
             });
     }
-
-    function closeVersionModal() {
-        document.getElementById('versionModal').style.display = 'none';
-        currentFileIdForVersion = null;
-    }
-
+    function closeVersionModal() { document.getElementById('versionModal').style.display = 'none'; }
     function rollbackVersion(fileId, versionNumber) {
         fetch('/api/file/rollback?fileId=' + fileId + '&version=' + versionNumber, { method: 'POST' })
             .then(res => res.text())
-            .then(msg => {
-                showToast(msg);
-                closeVersionModal();
-                loadFileList();
-                loadSpaceInfo();
-            });
+            .then(msg => { showToast(msg); closeVersionModal(); loadFileList(); loadSpaceInfo(); });
     }
-
     function deleteVersionRequest(versionId, fileId) {
         showConfirm('确定要删除此历史版本吗？', function() {
             fetch('/api/file/version/delete?versionId=' + versionId + '&fileId=' + fileId, { method: 'POST' })
                 .then(res => res.text())
-                .then(msg => {
-                    showToast(msg);
-                    openVersionModal(fileId);
-                    loadSpaceInfo();
-                });
+                .then(msg => { showToast(msg); openVersionModal(fileId); loadSpaceInfo(); });
         });
     }
-
     function openShareModal(fileId) {
         const modal = document.getElementById('shareModal');
         const content = document.getElementById('shareContent');
@@ -613,11 +332,7 @@
         `;
         modal.style.display = 'block';
     }
-
-    function closeShareModal() {
-        document.getElementById('shareModal').style.display = 'none';
-    }
-
+    function closeShareModal() { document.getElementById('shareModal').style.display = 'none'; }
     function createShare(fileId) {
         const password = document.getElementById('sharePwd').value;
         const days = document.getElementById('shareDays').value;
@@ -638,16 +353,19 @@
             })
             .catch(err => showToast('生成分享失败：' + err));
     }
-
     window.onclick = function(event) {
-        const versionModal = document.getElementById('versionModal');
-        const shareModal = document.getElementById('shareModal');
-        const confirmModal = document.getElementById('confirmModal');
-        if (event.target === versionModal) versionModal.style.display = 'none';
-        if (event.target === shareModal) shareModal.style.display = 'none';
-        if (event.target === confirmModal) closeConfirm();
+        if (event.target.classList.contains('modal')) event.target.style.display = 'none';
     }
-
+    function logoutAndClose() {
+        showConfirm('确定退出并关闭页面吗？', function() {
+            fetch('/api/user/logout').then(() => { window.close(); setTimeout(() => { window.location.href = '/login'; }, 100); });
+        });
+    }
+    function switchAccount() {
+        showConfirm('确定切换账号吗？', function() {
+            fetch('/api/user/logout').then(() => { window.location.href = '/login'; });
+        });
+    }
     loadSpaceInfo();
     loadFileList();
 </script>

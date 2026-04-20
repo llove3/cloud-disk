@@ -58,4 +58,19 @@ public class UserController {
         result.put("total", fullUser.getTotalSpace());
         return result;
     }
+
+    @PostMapping("/recalculate-space")
+    public String recalculateSpace(HttpSession session) {
+        User user = (User) session.getAttribute("user");
+        if (user == null) {
+            return "请先登录";
+        }
+        try {
+            userService.recalculateUsedSpace(user.getId());
+            return "空间校准成功";
+        } catch (Exception e) {
+            e.printStackTrace();
+            return "校准失败：" + e.getMessage();
+        }
+    }
 }

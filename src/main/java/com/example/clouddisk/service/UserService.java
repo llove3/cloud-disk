@@ -1,17 +1,30 @@
 package com.example.clouddisk.service;
 
+import com.example.clouddisk.entity.FileInfo;
+import com.example.clouddisk.entity.FileVersion;
 import com.example.clouddisk.entity.User;
+import com.example.clouddisk.mapper.FileMapper;
+import com.example.clouddisk.mapper.FileVersionMapper;
 import com.example.clouddisk.mapper.UserMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import java.security.MessageDigest;
 import java.security.SecureRandom;
 import java.util.Base64;
+import java.util.List;
 
 @Service
 public class UserService {
     @Autowired
     private UserMapper userMapper;
+
+    @Autowired
+    private FileMapper fileMapper;
+
+    @Autowired
+    private FileVersionMapper fileVersionMapper;
 
     public String generateSalt() {
         byte[] salt = new byte[16];
@@ -53,7 +66,28 @@ public class UserService {
         }
         return null;
     }
+
     public User findById(Long id) {
         return userMapper.findById(id);
+    }
+
+    @Transactional
+    public void recalculateUsedSpace(Long userId) {
+        List<FileInfo> activeFiles = fileMapper.findByUserIdAndDeletedFalse(userId);
+        long totalUsed = 0L;
+        for (FileInfo file : activeFiles) {
+            totalUsed += file.getFileSize();
+        }
+        List<FileVersion> allVersions = fileVersionMapper.findVersionsByUserId(userId);
+        for (FileVersion version : allVersions) {
+            totalUsed += version.getFileSize();
+        }
+        userMapper.updateUsedSpace(userId, totalUsed);
+    }
+
+    @Transactional
+    public User getUpdatedUser(Long userId) {
+        userMapper.clearLocalCache();
+        return userMapper.findById(userId);
     }
 }

@@ -18,9 +18,6 @@ public interface FileMapper {
     @Select("SELECT * FROM file WHERE id = #{id} AND user_id = #{userId} AND deleted = FALSE")
     FileInfo findByIdAndUserId(@Param("id") Long id, @Param("userId") Long userId);
 
-//    @Update("UPDATE file SET deleted = TRUE WHERE id = #{id}")
-//    int softDeleteById(@Param("id") Long id);
-
     @Update("UPDATE file SET deleted = TRUE, deleted_at = NOW() WHERE id = #{id}")
     int softDeleteById(@Param("id") Long id);
 
@@ -44,4 +41,9 @@ public interface FileMapper {
 
     @Select("SELECT * FROM file WHERE id = #{id}")
     FileInfo findById(@Param("id") Long id);
+
+    @Select("SELECT * FROM file WHERE user_id = #{userId} AND deleted = FALSE")
+    List<FileInfo> findByUserIdAndDeletedFalse(@Param("userId") Long userId);
+
+
 }

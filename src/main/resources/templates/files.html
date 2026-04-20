@@ -5,12 +5,26 @@
     <title>我的网盘</title>
     <style>
         body { font-family: Arial; padding: 20px; }
-        .header { display: flex; justify-content: space-between; align-items: center; }
+        .header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; }
         table { width: 100%; border-collapse: collapse; margin-top: 20px; }
         th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
         th { background-color: #f2f2f2; }
         .btn { margin-right: 10px; cursor: pointer; }
         .upload-area { margin: 20px 0; }
+        #toast { visibility: hidden; min-width: 250px; background-color: #333; color: #fff; text-align: center; border-radius: 4px; padding: 12px; position: fixed; left: 50%; bottom: 30px; transform: translateX(-50%); z-index: 1000; }
+        #toast.show { visibility: visible; animation: fadein 0.5s, fadeout 0.5s 2.5s; }
+        @keyframes fadein { from {bottom: 0; opacity: 0;} to {bottom: 30px; opacity: 1;} }
+        @keyframes fadeout { from {bottom: 30px; opacity: 1;} to {bottom: 0; opacity: 0;} }
+        .modal { display: none; position: fixed; z-index: 999; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.4); }
+        .modal-content { background-color: #fefefe; margin: 5% auto; padding: 20px; border: 1px solid #888; width: 500px; border-radius: 8px; max-height: 70vh; overflow-y: auto; }
+        .close { color: #aaa; float: right; font-size: 28px; font-weight: bold; cursor: pointer; }
+        .close:hover { color: black; }
+        .version-item, .share-info { margin: 10px 0; padding: 8px; border-bottom: 1px solid #eee; }
+        button { margin-right: 5px; }
+        .confirm-dialog { background: white; padding: 20px; border-radius: 8px; width: 300px; margin: 15% auto; text-align: center; }
+        .confirm-dialog button { margin: 10px; padding: 6px 20px; }
+        .space-container { display: flex; align-items: center; gap: 8px; }
+        .calibrate-btn { background: none; border: 1px solid #ccc; border-radius: 4px; padding: 2px 8px; cursor: pointer; font-size: 12px; }
     </style>
 </head>
 <body>
@@ -21,16 +35,16 @@
         <a href="/recycle">回收站</a> |
         <a href="/api/user/logout">退出</a>
     </div>
-    <div style="display: flex; align-items: center;">
-        <span id="spaceInfo" style="margin-right: 20px;"></span>
+    <div class="space-container">
+        <span id="spaceInfo" style="margin-right: 5px;"></span>
         <progress id="spaceProgress" value="0" max="100" style="width: 200px;"></progress>
+        <button class="calibrate-btn" id="calibrateSpaceBtn" title="校准已用空间">⟳</button>
     </div>
 </div>
 
 <div class="upload-area">
     <input type="file" id="fileInput">
     <button id="uploadBtn">上传文件</button>
-    <span id="uploadMsg"></span>
 </div>
 
 <table id="fileTable">
@@ -40,7 +54,60 @@
     <tbody id="fileList"></tbody>
 </table>
 
+<div id="toast"></div>
+
+<div id="versionModal" class="modal">
+    <div class="modal-content">
+        <span class="close" onclick="closeVersionModal()">&times;</span>
+        <h3>历史版本</h3>
+        <div id="versionListContainer"></div>
+    </div>
+</div>
+
+<div id="shareModal" class="modal">
+    <div class="modal-content">
+        <span class="close" onclick="closeShareModal()">&times;</span>
+        <h3>分享文件</h3>
+        <div id="shareContent"></div>
+    </div>
+</div>
+
+<div id="confirmModal" class="modal">
+    <div class="confirm-dialog">
+        <p id="confirmMessage">确定要执行此操作吗？</p>
+        <button id="confirmYes">确定</button>
+        <button id="confirmNo">取消</button>
+    </div>
+</div>
+
 <script>
+    let currentFileIdForVersion = null;
+    let confirmCallback = null;
+
+    function showToast(msg) {
+        const toast = document.getElementById('toast');
+        toast.innerText = msg;
+        toast.className = 'show';
+        setTimeout(() => { toast.className = toast.className.replace('show', ''); }, 3000);
+    }
+
+    function showConfirm(message, onConfirm) {
+        document.getElementById('confirmMessage').innerText = message;
+        document.getElementById('confirmModal').style.display = 'block';
+        confirmCallback = onConfirm;
+    }
+
+    function closeConfirm() {
+        document.getElementById('confirmModal').style.display = 'none';
+        confirmCallback = null;
+    }
+
+    document.getElementById('confirmYes').onclick = function() {
+        if (confirmCallback) confirmCallback();
+        closeConfirm();
+    };
+    document.getElementById('confirmNo').onclick = closeConfirm;
+
     function formatSize(bytes) {
         if (bytes === 0) return '0 B';
         const k = 1024;
@@ -48,6 +115,32 @@
         const i = Math.floor(Math.log(bytes) / Math.log(k));
         return (bytes / Math.pow(k, i)).toFixed(2) + ' ' + sizes[i];
     }
+
+    function updateSpaceDisplay(used, total) {
+        const percent = total > 0 ? (used / total) * 100 : 0;
+        document.getElementById('spaceInfo').innerText = formatSize(used) + ' / ' + formatSize(total);
+        document.getElementById('spaceProgress').value = percent;
+    }
+
+    function loadSpaceInfo() {
+        fetch('/api/user/space')
+            .then(res => res.json())
+            .then(data => {
+                updateSpaceDisplay(data.used || 0, data.total || 0);
+            });
+    }
+
+    function calibrateSpace() {
+        showToast('正在校准空间...');
+        fetch('/api/user/recalculate-space', { method: 'POST' })
+            .then(res => res.text())
+            .then(msg => {
+                showToast(msg);
+                loadSpaceInfo();
+            });
+    }
+
+    document.getElementById('calibrateSpaceBtn').onclick = calibrateSpace;
 
     function loadFileList() {
         fetch('/api/file/list')
@@ -61,86 +154,26 @@
                     row.insertCell(1).innerText = formatSize(file.fileSize);
                     row.insertCell(2).innerText = new Date(file.createdAt).toLocaleString();
                     const actions = row.insertCell(3);
-
                     const downloadBtn = document.createElement('button');
                     downloadBtn.innerText = '下载';
-                    downloadBtn.onclick = () => {
-                        window.location.href = '/api/file/download?fileId=' + file.id;
-                    };
-
+                    downloadBtn.onclick = () => { window.location.href = '/api/file/download?fileId=' + file.id; };
                     const versionsBtn = document.createElement('button');
                     versionsBtn.innerText = '版本';
-                    versionsBtn.onclick = () => {
-                        fetch('/api/file/versions?fileId=' + file.id)
-                            .then(res => res.json())
-                            .then(versions => {
-                                if (!versions || versions.length === 0) {
-                                    alert('暂无历史版本');
-                                    return;
-                                }
-                                let msg = '历史版本列表：\n';
-                                versions.forEach(v => {
-                                    msg += '版本 ' + v.versionNumber + '：' + v.fileName + '，大小 ' + formatSize(v.fileSize) + '，时间 ' + new Date(v.createdAt).toLocaleString() + '\n';
-                                });
-                                msg += '\n输入版本号进行回滚：';
-                                const inputVer = prompt(msg);
-                                if (inputVer && !isNaN(inputVer)) {
-                                    fetch('/api/file/rollback?fileId=' + file.id + '&version=' + inputVer, { method: 'POST' })
-                                        .then(res => res.text())
-                                        .then(msg => {
-                                            alert(msg);
-                                            loadFileList();
-                                        });
-                                }
-                            });
-                    };
-
+                    versionsBtn.onclick = () => { openVersionModal(file.id); };
                     const shareBtn = document.createElement('button');
                     shareBtn.innerText = '分享';
-                    shareBtn.onclick = () => {
-                        const password = prompt('设置提取码（可选，留空则无需密码）：');
-                        if (password === null) return;
-                        const daysInput = prompt('设置有效期天数（可选，留空则永久有效）：');
-                        if (daysInput === null) return;
-                        const days = daysInput ? parseInt(daysInput) : null;
-                        if (daysInput && (isNaN(days) || days <= 0)) {
-                            alert('有效期必须为正整数');
-                            return;
-                        }
-
-                        const params = new URLSearchParams();
-                        params.append('fileId', file.id);
-                        if (password) params.append('password', password);
-                        if (days) params.append('expireDays', days);
-
-                        fetch('/api/share/create', {
-                            method: 'POST',
-                            body: params
-                        })
-                            .then(res => res.json())
-                            .then(share => {
-                                const link = window.location.origin + '/s/' + share.shareCode;
-                                const msg = `分享链接已生成：\n${link}\n${share.password ? '提取码：' + share.password : '无提取码'}`;
-                                alert(msg);
-                                if (navigator.clipboard) {
-                                    navigator.clipboard.writeText(link).then(() => {
-                                        console.log('链接已复制到剪贴板');
-                                    });
-                                }
-                            })
-                            .catch(err => alert('生成分享失败：' + err));
-                    };
-
+                    shareBtn.onclick = () => { openShareModal(file.id); };
                     const deleteBtn = document.createElement('button');
                     deleteBtn.innerText = '删除';
                     deleteBtn.onclick = () => {
                         fetch('/api/file/delete?fileId=' + file.id, { method: 'POST' })
-                            .then(() => {
+                            .then(res => res.text())
+                            .then(msg => {
+                                showToast(msg);
                                 loadFileList();
                                 loadSpaceInfo();
                             });
                     };
-
                     actions.appendChild(downloadBtn);
                     actions.appendChild(versionsBtn);
                     actions.appendChild(shareBtn);
@@ -152,75 +185,128 @@
     document.getElementById('uploadBtn').onclick = () => {
         const fileInput = document.getElementById('fileInput');
         const file = fileInput.files[0];
-        if (!file) {
-            alert('请选择文件');
-            return;
-        }
-        const formData = new FormData();
-        formData.append('file', file);
-        fetch('/api/file/upload', { method: 'POST', body: formData })
-            .then(res => res.text())
-            .then(msg => {
-                document.getElementById('uploadMsg').innerText = msg;
-                if (msg === '上传成功') {
-                    loadFileList();
-                    fileInput.value = '';
-                }
-            });
-    };
-
-
-
-    function formatSizeForDisplay(bytes) {
-        if (bytes === 0) return '0 B';
-        const k = 1024;
-        const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
-        const i = Math.floor(Math.log(bytes) / Math.log(k));
-        return (bytes / Math.pow(k, i)).toFixed(2) + ' ' + sizes[i];
-    }
-
-    function loadSpaceInfo() {
-        fetch('/api/user/space')
-            .then(res => res.json())
-            .then(data => {
-                const used = data.used || 0;
-                const total = data.total || 0;
-                const percent = total > 0 ? (used / total) * 100 : 0;
-                document.getElementById('spaceInfo').innerText =
-                    formatSizeForDisplay(used) + ' / ' + formatSizeForDisplay(total);
-                document.getElementById('spaceProgress').value = percent;
-            });
-    }
-
-    document.getElementById('uploadBtn').onclick = () => {
-        const fileInput = document.getElementById('fileInput');
-        const file = fileInput.files[0];
-        if (!file) {
-            alert('请选择文件');
-            return;
-        }
+        if (!file) { showToast('请选择文件'); return; }
         fetch('/api/user/space')
             .then(res => res.json())
             .then(data => {
                 if (data.used + file.size > data.total) {
-                    alert('空间不足，无法上传');
+                    showToast('空间不足，无法上传');
                     return;
                 }
                 const formData = new FormData();
                 formData.append('file', file);
                 fetch('/api/file/upload', { method: 'POST', body: formData })
-                    .then(res => res.text())
-                    .then(msg => {
-                        document.getElementById('uploadMsg').innerText = msg;
-                        if (msg === '上传成功') {
+                    .then(res => res.json())
+                    .then(result => {
+                        showToast(result.message);
+                        if (result.success) {
+                            updateSpaceDisplay(result.usedSpace, result.totalSpace);
                             loadFileList();
-                            loadSpaceInfo();
                             fileInput.value = '';
                         }
                     });
             });
     };
-    loadFileList();
+
+    function openVersionModal(fileId) {
+        currentFileIdForVersion = fileId;
+        fetch('/api/file/versions?fileId=' + fileId)
+            .then(res => res.json())
+            .then(versions => {
+                const container = document.getElementById('versionListContainer');
+                if (!versions || versions.length === 0) {
+                    container.innerHTML = '<p>暂无历史版本</p>';
+                } else {
+                    let html = '';
+                    versions.forEach(v => {
+                        html += `<div class="version-item">
+                            <strong>版本 ${v.versionNumber}</strong>：${v.fileName} (${formatSize(v.fileSize)})<br>
+                            <small>${new Date(v.createdAt).toLocaleString()}</small><br>
+                            <button onclick="rollbackVersion(${fileId}, ${v.versionNumber})">回滚到此版本</button>
+                            <button onclick="deleteVersionRequest(${v.id}, ${fileId})">删除此版本</button>
+                        </div>`;
+                    });
+                    container.innerHTML = html;
+                }
+                document.getElementById('versionModal').style.display = 'block';
+            });
+    }
+
+    function closeVersionModal() {
+        document.getElementById('versionModal').style.display = 'none';
+        currentFileIdForVersion = null;
+    }
+
+    function rollbackVersion(fileId, versionNumber) {
+        fetch('/api/file/rollback?fileId=' + fileId + '&version=' + versionNumber, { method: 'POST' })
+            .then(res => res.text())
+            .then(msg => {
+                showToast(msg);
+                closeVersionModal();
+                loadFileList();
+                loadSpaceInfo();
+            });
+    }
+
+    function deleteVersionRequest(versionId, fileId) {
+        showConfirm('确定要删除此历史版本吗？', function() {
+            fetch('/api/file/version/delete?versionId=' + versionId + '&fileId=' + fileId, { method: 'POST' })
+                .then(res => res.text())
+                .then(msg => {
+                    showToast(msg);
+                    openVersionModal(fileId);
+                    loadSpaceInfo();
+                });
+        });
+    }
+
+    function openShareModal(fileId) {
+        const modal = document.getElementById('shareModal');
+        const content = document.getElementById('shareContent');
+        content.innerHTML = `
+            <p>设置提取码（可选）：<input type="text" id="sharePwd" placeholder="留空则无需密码"></p>
+            <p>有效期天数（可选）：<input type="number" id="shareDays" min="1" placeholder="留空则永久"></p>
+            <button onclick="createShare(${fileId})">生成分享链接</button>
+            <div id="shareResult" style="margin-top:15px;"></div>
+        `;
+        modal.style.display = 'block';
+    }
+
+    function closeShareModal() {
+        document.getElementById('shareModal').style.display = 'none';
+    }
+
+    function createShare(fileId) {
+        const password = document.getElementById('sharePwd').value;
+        const days = document.getElementById('shareDays').value;
+        const params = new URLSearchParams();
+        params.append('fileId', fileId);
+        if (password) params.append('password', password);
+        if (days) params.append('expireDays', days);
+        fetch('/api/share/create', { method: 'POST', body: params })
+            .then(res => res.json())
+            .then(share => {
+                const link = window.location.origin + '/s/' + share.shareCode;
+                const resultDiv = document.getElementById('shareResult');
+                resultDiv.innerHTML = `
+                    <p>分享链接：<input type="text" value="${link}" readonly style="width:80%"></p>
+                    <p>${share.password ? '提取码：' + share.password : '无提取码'}</p>
+                    <button onclick="navigator.clipboard.writeText('${link}')">复制链接</button>
+                `;
+            })
+            .catch(err => showToast('生成分享失败：' + err));
+    }
+
+    window.onclick = function(event) {
+        const versionModal = document.getElementById('versionModal');
+        const shareModal = document.getElementById('shareModal');
+        const confirmModal = document.getElementById('confirmModal');
+        if (event.target === versionModal) versionModal.style.display = 'none';
+        if (event.target === shareModal) shareModal.style.display = 'none';
+        if (event.target === confirmModal) closeConfirm();
+    }
+
+    loadSpaceInfo();
     loadFileList();
 </script>
 </body>

@@ -2,6 +2,7 @@ package com.example.clouddisk.service;
 
 import com.example.clouddisk.entity.FileInfo;
 import com.example.clouddisk.entity.FileVersion;
+import com.example.clouddisk.entity.User;
 import com.example.clouddisk.mapper.FileMapper;
 import com.example.clouddisk.mapper.FileVersionMapper;
 import com.example.clouddisk.mapper.UserMapper;
@@ -31,6 +32,9 @@ public class FileService {
     @Autowired
     private UserMapper userMapper;
 
+    @Autowired
+    private UserService userService;
+
     @Value("${file.upload-dir}")
     private String uploadDir;
 
@@ -47,16 +51,13 @@ public class FileService {
     }
 
     @Transactional
-    public FileInfo saveFile(Long userId, Long parentId, MultipartFile file) throws Exception {
+    public User saveFile(Long userId, Long parentId, MultipartFile file) throws Exception {
         String md5 = getFileMd5(file);
-        System.out.println("MD5计算完成：" + md5);
-
         String userDir = uploadDir + userId + "/";
         Path userPath = Paths.get(userDir);
         if (!Files.exists(userPath)) {
             Files.createDirectories(userPath);
         }
-
         String originalName = file.getOriginalFilename();
         String baseName = originalName;
         String extension = "";
@@ -67,12 +68,8 @@ public class FileService {
         }
         String uniqueName = baseName + "_" + System.currentTimeMillis() + extension;
         String storePath = userDir + uniqueName;
-
         file.transferTo(Paths.get(storePath));
-        System.out.println("物理文件保存成功：" + storePath);
-
         FileInfo existing = fileMapper.findByUserIdAndParentIdAndFileName(userId, parentId, originalName);
-
         if (existing == null) {
             FileInfo fileInfo = new FileInfo();
             fileInfo.setUserId(userId);
@@ -83,29 +80,27 @@ public class FileService {
             fileInfo.setParentId(parentId);
             fileInfo.setVersion(1);
             fileInfo.setDeleted(false);
-            int rows = fileMapper.insert(fileInfo);
-            System.out.println("新增文件，影响行数：" + rows + "，生成ID：" + fileInfo.getId());
+            fileMapper.insert(fileInfo);
             userMapper.addUsedSpace(userId, file.getSize());
-            return fileInfo;
         } else {
+            long oldSize = existing.getFileSize();
             FileVersion version = new FileVersion();
             version.setFileId(existing.getId());
             version.setVersionNumber(existing.getVersion());
             version.setFileName(existing.getFileName());
-            version.setFileSize(existing.getFileSize());
+            version.setFileSize(oldSize);
             version.setFilePath(existing.getFilePath());
             version.setFileMd5(existing.getFileMd5());
             fileVersionMapper.insert(version);
-
             existing.setFileSize(file.getSize());
             existing.setFilePath(storePath);
             existing.setFileMd5(md5);
             existing.setVersion(existing.getVersion() + 1);
             fileMapper.update(existing);
-            System.out.println("覆盖上传，版本号更新为：" + existing.getVersion());
+            userMapper.subUsedSpace(userId, oldSize);
             userMapper.addUsedSpace(userId, file.getSize());
-            return existing;
         }
+        return userService.getUpdatedUser(userId);
     }
 
     public List<FileInfo> listFiles(Long userId, Long parentId) {
@@ -120,7 +115,6 @@ public class FileService {
         FileInfo file = getFile(fileId, userId);
         if (file != null) {
             fileMapper.softDeleteById(fileId);
-            System.out.println("软删除文件，ID：" + fileId);
         }
     }
 
@@ -132,30 +126,26 @@ public class FileService {
         FileInfo file = fileMapper.findByIdAndUserIdIncludeDeleted(fileId, userId);
         if (file != null && file.getDeleted()) {
             fileMapper.restoreById(fileId);
-            System.out.println("还原文件成功，ID：" + fileId);
-        } else {
-            System.out.println("还原失败：文件不存在或未被删除，ID：" + fileId);
         }
     }
 
+    @Transactional
     public void permanentDelete(Long fileId, Long userId) throws IOException {
         FileInfo file = fileMapper.findByIdAndUserIdIncludeDeleted(fileId, userId);
         if (file != null && file.getDeleted()) {
             Path currentPath = Paths.get(file.getFilePath());
             Files.deleteIfExists(currentPath);
-            System.out.println("删除当前版本物理文件：" + file.getFilePath());
-
             List<FileVersion> versions = fileVersionMapper.findByFileId(fileId);
+            long totalVersionSize = 0L;
             for (FileVersion version : versions) {
                 Path versionPath = Paths.get(version.getFilePath());
                 Files.deleteIfExists(versionPath);
-                System.out.println("删除历史版本物理文件：" + version.getFilePath());
+                totalVersionSize += version.getFileSize();
             }
-
             fileVersionMapper.deleteByFileId(fileId);
             fileMapper.permanentDeleteById(fileId);
-            System.out.println("彻底删除文件完成，ID：" + fileId);
             userMapper.subUsedSpace(userId, file.getFileSize());
+            userMapper.subUsedSpace(userId, totalVersionSize);
         }
     }
 
@@ -173,28 +163,42 @@ public class FileService {
         if (current == null) {
             throw new RuntimeException("文件不存在或无权访问");
         }
-
         FileVersion targetVersion = fileVersionMapper.findByFileIdAndVersion(fileId, versionNumber);
         if (targetVersion == null) {
             throw new RuntimeException("指定版本不存在");
         }
-
+        long oldSize = current.getFileSize();
         FileVersion currentVersionBackup = new FileVersion();
         currentVersionBackup.setFileId(current.getId());
         currentVersionBackup.setVersionNumber(current.getVersion());
         currentVersionBackup.setFileName(current.getFileName());
-        currentVersionBackup.setFileSize(current.getFileSize());
+        currentVersionBackup.setFileSize(oldSize);
         currentVersionBackup.setFilePath(current.getFilePath());
         currentVersionBackup.setFileMd5(current.getFileMd5());
         fileVersionMapper.insert(currentVersionBackup);
-
         current.setFileName(targetVersion.getFileName());
         current.setFileSize(targetVersion.getFileSize());
         current.setFilePath(targetVersion.getFilePath());
         current.setFileMd5(targetVersion.getFileMd5());
         current.setVersion(current.getVersion() + 1);
         fileMapper.update(current);
+        userMapper.subUsedSpace(userId, oldSize);
+        userMapper.addUsedSpace(userId, targetVersion.getFileSize());
+    }
 
-        System.out.println("回滚成功，新版本号：" + current.getVersion());
+    @Transactional
+    public void deleteFileVersion(Long versionId, Long fileId, Long userId) throws IOException {
+        FileInfo file = fileMapper.findByIdAndUserId(fileId, userId);
+        if (file == null) {
+            throw new RuntimeException("文件不存在或无权访问");
+        }
+        FileVersion version = fileVersionMapper.findById(versionId);
+        if (version == null || !version.getFileId().equals(fileId)) {
+            throw new RuntimeException("版本不存在");
+        }
+        Path versionPath = Paths.get(version.getFilePath());
+        Files.deleteIfExists(versionPath);
+        fileVersionMapper.deleteById(versionId);
+        userMapper.subUsedSpace(userId, version.getFileSize());
     }
 }

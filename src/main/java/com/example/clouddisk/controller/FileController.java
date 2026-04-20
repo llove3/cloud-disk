@@ -20,7 +20,9 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/file")
@@ -32,29 +34,35 @@ public class FileController {
     private UserService userService;
 
     @PostMapping("/upload")
-    public String upload(@RequestParam("file") MultipartFile file,
-                         @RequestParam(value = "parentId", defaultValue = "0") Long parentId,
-                         HttpSession session) {
+    public Map<String, Object> upload(@RequestParam("file") MultipartFile file,
+                                      @RequestParam(value = "parentId", defaultValue = "0") Long parentId,
+                                      HttpSession session) {
+        Map<String, Object> result = new HashMap<>();
         User sessionUser = (User) session.getAttribute("user");
-        System.out.println("=== 上传请求开始 ===");
-        System.out.println("当前登录用户：" + (sessionUser == null ? "null" : sessionUser.getUsername() + ", id=" + sessionUser.getId()));
         if (sessionUser == null) {
-            return "请先登录";
+            result.put("success", false);
+            result.put("message", "请先登录");
+            return result;
         }
-
         User fullUser = userService.findById(sessionUser.getId());
         if (fullUser.getUsedSpace() + file.getSize() > fullUser.getTotalSpace()) {
-            return "空间不足";
+            result.put("success", false);
+            result.put("message", "空间不足");
+            return result;
         }
-
         try {
-            FileInfo saved = fileService.saveFile(fullUser.getId(), parentId, file);
-            System.out.println("上传成功，文件ID：" + saved.getId());
-            return "上传成功";
+            fileService.saveFile(fullUser.getId(), parentId, file);
+            User updatedUser = userService.getUpdatedUser(sessionUser.getId());
+            result.put("success", true);
+            result.put("message", "上传成功");
+            result.put("usedSpace", updatedUser.getUsedSpace());
+            result.put("totalSpace", updatedUser.getTotalSpace());
         } catch (Exception e) {
             e.printStackTrace();
-            return "上传失败：" + e.getMessage();
+            result.put("success", false);
+            result.put("message", "上传失败：" + e.getMessage());
         }
+        return result;
     }
 
     @GetMapping("/list")

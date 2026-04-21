@@ -67,12 +67,34 @@ public class FileController {
 
     @GetMapping("/list")
     public List<FileInfo> list(@RequestParam(value = "parentId", defaultValue = "0") Long parentId,
+                               @RequestParam(value = "category", required = false) String category,
                                HttpSession session) {
         User user = (User) session.getAttribute("user");
         if (user == null) {
             return null;
         }
-        return fileService.listFiles(user.getId(), parentId);
+        return fileService.listFiles(user.getId(), parentId, category);
+    }
+
+    @GetMapping("/category/list")
+    public List<FileInfo> listByCategory(@RequestParam("category") String category,
+                                         HttpSession session) {
+        User user = (User) session.getAttribute("user");
+        if (user == null) {
+            return null;
+        }
+        return fileService.getFilesByCategory(user.getId(), category);
+    }
+
+    @GetMapping("/search")
+    public List<FileInfo> search(@RequestParam("keyword") String keyword,
+                                 @RequestParam(value = "category", required = false) String category,
+                                 HttpSession session) {
+        User user = (User) session.getAttribute("user");
+        if (user == null) {
+            return null;
+        }
+        return fileService.searchFiles(user.getId(), keyword, category);
     }
 
     @GetMapping("/download")

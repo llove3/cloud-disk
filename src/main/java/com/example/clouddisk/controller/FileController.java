@@ -314,4 +314,25 @@ public class FileController {
         return result;
     }
 
+    @PostMapping("/move")
+    public Map<String, Object> move(@RequestParam Long fileId,
+                                    @RequestParam Long targetParentId,
+                                    HttpSession session) {
+        Map<String, Object> result = new HashMap<>();
+        User user = (User) session.getAttribute("user");
+        if (user == null) {
+            result.put("success", false);
+            result.put("message", "请先登录");
+            return result;
+        }
+        try {
+            fileService.moveFile(fileId, user.getId(), targetParentId);
+            result.put("success", true);
+            result.put("message", "移动成功");
+        } catch (Exception e) {
+            result.put("success", false);
+            result.put("message", e.getMessage());
+        }
+        return result;
+    }
 }

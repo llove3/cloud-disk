@@ -369,4 +369,26 @@ public class FileService {
         fileMapper.update(file);
     }
 
+    @Transactional
+    public void moveFile(Long fileId, Long userId, Long targetParentId) {
+        FileInfo file = fileMapper.findByIdAndUserId(fileId, userId);
+        if (file == null) {
+            throw new RuntimeException("文件不存在或无权访问");
+        }
+        if (targetParentId.equals(file.getParentId())) {
+            return;
+        }
+        if (targetParentId != 0) {
+            FileInfo targetFolder = fileMapper.findById(targetParentId);
+            if (targetFolder == null || targetFolder.getFileSize() != 0 || !targetFolder.getDeleted().equals(false)) {
+                throw new RuntimeException("目标文件夹不存在");
+            }
+        }
+        FileInfo conflict = fileMapper.findByUserIdAndParentIdAndFileName(userId, targetParentId, file.getFileName());
+        if (conflict != null && !conflict.getId().equals(fileId)) {
+            throw new RuntimeException("目标文件夹已存在同名文件或文件夹");
+        }
+        file.setParentId(targetParentId);
+        fileMapper.update(file);
+    }
 }

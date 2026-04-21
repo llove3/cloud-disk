@@ -19,11 +19,99 @@
         .search-area input { flex: 1; padding: 12px 0 12px 16px; border: none; outline: none; background: transparent; font-size: 14px; }
         .search-area select { padding: 8px 12px; border: 1px solid #e2e8f0; border-radius: 20px; background: white; font-size: 14px; outline: none; }
         .search-area button { background: #3b82f6; color: white; border: none; padding: 10px 24px; border-radius: 30px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px; }
-        .upload-area { background: white; padding: 16px 24px; border-radius: 20px; display: flex; align-items: center; gap: 16px; margin-bottom: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.02); border: 1px solid #e2e8f0; }
-        .upload-area input[type="file"] { flex: 1; padding: 8px; border: 2px dashed #cbd5e1; border-radius: 12px; background: #f8fafc; cursor: pointer; }
-        .upload-btn, .folder-btn { background: #3b82f6; color: white; border: none; padding: 12px 28px; border-radius: 30px; font-weight: 600; cursor: pointer; transition: all 0.2s; box-shadow: 0 4px 10px rgba(59,130,246,0.2); display: flex; align-items: center; gap: 8px; }
-        .folder-btn { background: #8b5cf6; box-shadow: 0 4px 10px rgba(139,92,246,0.2); }
+
+        /* 上传区域美化 */
+        .upload-card {
+            background: white;
+            border-radius: 20px;
+            padding: 20px 24px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+            border: 1px solid #eef2f6;
+            display: flex;
+            align-items: flex-start;
+            gap: 20px;
+        }
+        .upload-files-box {
+            flex: 1;
+            background: #f8fafc;
+            border: 2px dashed #cbd5e1;
+            border-radius: 16px;
+            padding: 16px 20px;
+            min-height: 80px;
+            max-height: 120px;
+            overflow-y: auto;
+            font-size: 14px;
+            color: #475569;
+            transition: border-color 0.2s;
+        }
+        .upload-files-box.has-files {
+            border-color: #3b82f6;
+            background: #f0f7ff;
+        }
+        .upload-files-box .file-item {
+            padding: 4px 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .upload-files-box .file-item i {
+            color: #3b82f6;
+            font-size: 14px;
+        }
+        .upload-files-box .placeholder {
+            color: #94a3b8;
+            font-style: italic;
+        }
+        .upload-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            align-items: flex-end;
+        }
+        .upload-buttons {
+            display: flex;
+            gap: 12px;
+        }
+        .upload-btn, .folder-btn {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 12px 28px;
+            border-radius: 30px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 4px 10px rgba(59,130,246,0.2);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .folder-btn {
+            background: #8b5cf6;
+            box-shadow: 0 4px 10px rgba(139,92,246,0.2);
+        }
         .upload-btn:hover, .folder-btn:hover { transform: translateY(-2px); }
+        .confirm-upload-btn {
+            background: #10b981;
+            color: white;
+            border: none;
+            padding: 10px 24px;
+            border-radius: 30px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 4px 10px rgba(16,185,129,0.2);
+            display: none;
+            align-items: center;
+            gap: 8px;
+        }
+        .selected-count {
+            font-size: 13px;
+            color: #64748b;
+            align-self: flex-end;
+        }
+
         .batch-actions { display: flex; gap: 8px; margin-bottom: 16px; }
         .batch-actions button { background: #f1f5f9; border: 1px solid #e2e8f0; padding: 8px 16px; border-radius: 30px; font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: all 0.15s; }
         .batch-actions button:hover { background: #e2e8f0; }
@@ -48,10 +136,13 @@
         td { padding: 16px 20px; border-bottom: 1px solid #f1f5f9; color: #334155; }
         tr:last-child td { border-bottom: none; }
         tr:hover td { background: #fafbff; }
-        .action-buttons { display: flex; gap: 8px; flex-wrap: wrap; }
-        .action-btn { background: none; border: 1px solid #e2e8f0; padding: 6px 12px; border-radius: 20px; font-size: 13px; font-weight: 500; color: #475569; cursor: pointer; transition: all 0.15s; display: inline-flex; align-items: center; gap: 4px; }
+        .action-buttons { display: flex; gap: 6px; flex-wrap: wrap; }
+        .action-btn { background: none; border: 1px solid #e2e8f0; padding: 4px 8px; border-radius: 16px; font-size: 12px; font-weight: 500; color: #475569; cursor: pointer; transition: all 0.15s; display: inline-flex; align-items: center; gap: 3px; }
         .action-btn:hover { background: #3b82f6; border-color: #3b82f6; color: white; }
         .folder-icon { color: #fbbf24; margin-right: 6px; }
+        .file-name-cell { display: flex; align-items: center; gap: 6px; }
+        .file-name-cell .preview-icon { color: #64748b; cursor: pointer; font-size: 16px; margin-left: 6px; }
+        .file-name-cell .preview-icon:hover { color: #3b82f6; }
         .recycle-fab { position: fixed; bottom: 30px; right: 30px; background: #1e293b; color: white; width: 56px; height: 56px; border-radius: 30px; display: flex; align-items: center; justify-content: center; box-shadow: 0 8px 20px rgba(0,0,0,0.15); transition: all 0.2s; text-decoration: none; z-index: 100; }
         .recycle-fab:hover { background: #0f172a; transform: scale(1.05); }
         #toast { visibility: hidden; min-width: 280px; background: #1e293b; color: white; text-align: center; border-radius: 60px; padding: 14px 24px; position: fixed; left: 50%; bottom: 30px; transform: translateX(-50%); z-index: 1000; font-weight: 500; box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
@@ -123,10 +214,20 @@
     <button id="clearSearchBtn" style="background: #f1f5f9; color: #475569;"><i class="fas fa-times"></i> 清除</button>
 </div>
 
-<div class="upload-area">
-    <input type="file" id="fileInput" multiple>
-    <button id="uploadBtn" class="upload-btn"><i class="fas fa-upload"></i>上传文件</button>
-    <button id="newFolderBtn" class="folder-btn"><i class="fas fa-folder-plus"></i>新建文件夹</button>
+<!-- 上传区域美化 -->
+<div class="upload-card">
+    <div class="upload-files-box" id="selectedFilesBox">
+        <span class="placeholder">暂未选择文件，点击“上传文件”按钮选择</span>
+    </div>
+    <div class="upload-actions">
+        <div class="upload-buttons">
+            <input type="file" id="fileInput" multiple style="display:none;">
+            <button id="uploadBtn" class="upload-btn"><i class="fas fa-upload"></i>上传文件</button>
+            <button id="newFolderBtn" class="folder-btn"><i class="fas fa-folder-plus"></i>新建文件夹</button>
+        </div>
+        <button id="confirmUploadBtn" class="confirm-upload-btn"><i class="fas fa-check"></i>确认上传</button>
+        <span class="selected-count" id="selectedCountDisplay"></span>
+    </div>
 </div>
 
 <div class="batch-actions">
@@ -182,24 +283,24 @@
     </div>
 </div>
 
-<!-- 目标文件夹选择模态框（用于上传前） -->
-<div id="uploadFolderPickerModal" class="modal">
+<!-- 文件夹选择器模态框（用于移动/上传） -->
+<div id="folderPickerModal" class="modal">
     <div class="modal-content" style="width: 550px;">
-        <span class="close" onclick="closeUploadFolderPickerModal()">&times;</span>
-        <h3>选择上传目标文件夹</h3>
-        <div class="breadcrumb" id="uploadPickerBreadcrumb" style="margin-bottom: 12px;">
-            <a onclick="uploadPickerNavigateTo(0)"><i class="fas fa-home"></i> 根目录</a>
+        <span class="close" onclick="closeFolderPickerModal()">&times;</span>
+        <h3 id="pickerTitle">选择目标文件夹</h3>
+        <div class="breadcrumb" id="pickerBreadcrumb" style="margin-bottom: 12px;">
+            <a onclick="pickerNavigateTo(0)"><i class="fas fa-home"></i> 根目录</a>
         </div>
-        <div class="folder-picker-list" id="uploadFolderPickerList"></div>
+        <div class="folder-picker-list" id="folderPickerList"></div>
         <div class="picker-actions">
-            <button id="newFolderInUploadPickerBtn" style="padding: 8px 16px; background: #8b5cf6; color: white; border: none; border-radius: 30px; font-weight: 500; cursor: pointer;"><i class="fas fa-folder-plus"></i> 新建文件夹</button>
+            <button id="newFolderInPickerBtn" style="padding: 8px 16px; background: #8b5cf6; color: white; border: none; border-radius: 30px; font-weight: 500; cursor: pointer;"><i class="fas fa-folder-plus"></i> 新建文件夹</button>
             <div style="flex:1;"></div>
-            <button id="selectUploadFolderBtn" style="padding: 10px 24px; background: #3b82f6; color: white; border: none; border-radius: 30px; font-weight: 600; cursor: pointer;">选择此文件夹</button>
+            <button id="selectPickerFolderBtn" style="padding: 10px 24px; background: #3b82f6; color: white; border: none; border-radius: 30px; font-weight: 600; cursor: pointer;">选择此文件夹</button>
         </div>
     </div>
 </div>
 
-<!-- 重命名模态框（通用） -->
+<!-- 重命名模态框 -->
 <div id="renameModal" class="modal">
     <div class="rename-dialog">
         <h3 id="renameModalTitle">重命名</h3>
@@ -276,10 +377,13 @@
     let uploadTargetParentId = 0;
     let uploadTargetPath = '根目录';
 
-    let uploadPickerCurrentParentId = 0;
-    let uploadPickerBreadcrumbStack = [{id:0, name:'根目录'}];
-    let uploadPickerSelectedFolderId = 0;
-    let uploadPickerSelectedFolderName = '根目录';
+    let pickerCurrentParentId = 0;
+    let pickerBreadcrumbStack = [{id:0, name:'根目录'}];
+    let pickerSelectedFolderId = 0;
+    let pickerSelectedFolderName = '根目录';
+    let pickerResolve = null;
+    let pickerMode = 'upload'; // 'upload' or 'move'
+    let moveFileId = null;
 
     let currentView = 'folder';
     let currentCategory = '';
@@ -290,6 +394,29 @@
     let selectedFileIds = new Set();
 
     let pickerNewFolderCallback = null;
+
+    // 更新已选文件显示区域
+    function updateSelectedFilesDisplay() {
+        const box = document.getElementById('selectedFilesBox');
+        const countSpan = document.getElementById('selectedCountDisplay');
+        const confirmBtn = document.getElementById('confirmUploadBtn');
+
+        if (pendingUploadFiles.length === 0) {
+            box.innerHTML = '<span class="placeholder">暂未选择文件，点击“上传文件”按钮选择</span>';
+            box.classList.remove('has-files');
+            countSpan.innerText = '';
+            confirmBtn.style.display = 'none';
+        } else {
+            box.classList.add('has-files');
+            let html = '';
+            pendingUploadFiles.forEach((file, index) => {
+                html += `<div class="file-item"><i class="fas fa-file"></i> ${file.name} (${formatSize(file.size)})</div>`;
+            });
+            box.innerHTML = html;
+            countSpan.innerText = `已选择 ${pendingUploadFiles.length} 个文件`;
+            confirmBtn.style.display = 'flex';
+        }
+    }
 
     function openNewFolderModalForPicker(callback) {
         document.getElementById('newFolderNameInput').value = '';
@@ -518,18 +645,32 @@
             } else {
                 checkboxCell.innerHTML = '';
             }
-            let nameHtml = file.fileName;
-            if (isFolder) {
-                nameHtml = `<i class="fas fa-folder folder-icon"></i> ` + file.fileName;
-            } else {
-                nameHtml = `<i class="fas fa-file"></i> ` + file.fileName;
-            }
+
             const nameCell = row.insertCell(1);
-            nameCell.innerHTML = nameHtml;
+            const nameDiv = document.createElement('div');
+            nameDiv.className = 'file-name-cell';
+
+            const icon = document.createElement('i');
+            icon.className = isFolder ? 'fas fa-folder folder-icon' : 'fas fa-file';
+            nameDiv.appendChild(icon);
+
+            const nameSpan = document.createElement('span');
+            nameSpan.innerText = file.fileName;
+            nameSpan.style.cursor = 'pointer';
             if (isFolder && currentView === 'folder' && !searchMode) {
-                nameCell.style.cursor = 'pointer';
-                nameCell.onclick = () => navigateTo(file.id);
+                nameSpan.onclick = () => navigateTo(file.id);
             }
+            nameDiv.appendChild(nameSpan);
+
+            if (!isFolder) {
+                const previewIcon = document.createElement('i');
+                previewIcon.className = 'fas fa-eye preview-icon';
+                previewIcon.title = '预览';
+                previewIcon.onclick = (e) => { e.stopPropagation(); previewFile(file.id, file.fileName); };
+                nameDiv.appendChild(previewIcon);
+            }
+            nameCell.appendChild(nameDiv);
+
             row.insertCell(2).innerText = isFolder ? '-' : formatSize(file.fileSize);
             if (currentView === 'category' || searchMode) {
                 row.insertCell(3).innerText = file.location || '根目录';
@@ -538,40 +679,52 @@
                 row.insertCell(3).innerText = parseLocalTime(file.createdAt);
             }
             const actions = row.insertCell((currentView === 'category' || searchMode) ? 5 : 4);
+            actions.className = 'action-buttons';
 
+            // 重命名按钮（文件和文件夹都有）
             const renameBtn = document.createElement('button');
             renameBtn.className = 'action-btn';
-            renameBtn.innerHTML = '<i class="fas fa-pen"></i>重命名';
+            renameBtn.innerHTML = '<i class="fas fa-pen"></i>';
+            renameBtn.title = '重命名';
             renameBtn.onclick = () => openRenameModal(file.id, file.fileName, isFolder);
             actions.appendChild(renameBtn);
 
             if (!isFolder) {
-                const previewBtn = document.createElement('button');
-                previewBtn.className = 'action-btn';
-                previewBtn.innerHTML = '<i class="fas fa-eye"></i>预览';
-                previewBtn.onclick = () => previewFile(file.id, file.fileName);
-                actions.appendChild(previewBtn);
+                const moveBtn = document.createElement('button');
+                moveBtn.className = 'action-btn';
+                moveBtn.innerHTML = '<i class="fas fa-arrows-alt"></i>';
+                moveBtn.title = '移动';
+                moveBtn.onclick = () => openMovePicker(file.id);
+                actions.appendChild(moveBtn);
             }
+
             if (!isFolder) {
                 const downloadBtn = document.createElement('button');
                 downloadBtn.className = 'action-btn';
-                downloadBtn.innerHTML = '<i class="fas fa-download"></i>下载';
+                downloadBtn.innerHTML = '<i class="fas fa-download"></i>';
+                downloadBtn.title = '下载';
                 downloadBtn.onclick = () => { window.location.href = '/api/file/download?fileId=' + file.id; };
                 actions.appendChild(downloadBtn);
-                const versionsBtn = document.createElement('button');
-                versionsBtn.className = 'action-btn';
-                versionsBtn.innerHTML = '<i class="fas fa-code-branch"></i>版本';
-                versionsBtn.onclick = () => { openVersionModal(file.id); };
-                actions.appendChild(versionsBtn);
+
                 const shareBtn = document.createElement('button');
                 shareBtn.className = 'action-btn';
-                shareBtn.innerHTML = '<i class="fas fa-share-alt"></i>分享';
+                shareBtn.innerHTML = '<i class="fas fa-share-alt"></i>';
+                shareBtn.title = '分享';
                 shareBtn.onclick = () => { openShareModal(file.id); };
                 actions.appendChild(shareBtn);
+
+                const versionsBtn = document.createElement('button');
+                versionsBtn.className = 'action-btn';
+                versionsBtn.innerHTML = '<i class="fas fa-code-branch"></i>';
+                versionsBtn.title = '版本';
+                versionsBtn.onclick = () => { openVersionModal(file.id); };
+                actions.appendChild(versionsBtn);
             }
+
             const deleteBtn = document.createElement('button');
             deleteBtn.className = 'action-btn';
-            deleteBtn.innerHTML = '<i class="fas fa-trash"></i>删除';
+            deleteBtn.innerHTML = '<i class="fas fa-trash"></i>';
+            deleteBtn.title = '删除';
             deleteBtn.onclick = () => {
                 fetch('/api/file/delete?fileId=' + file.id, { method: 'POST' })
                     .then(res => res.text())
@@ -765,62 +918,64 @@
     document.getElementById('newFolderCancel').onclick = closeNewFolderModal;
     document.getElementById('newFolderBtn').onclick = openNewFolderModal;
 
-    function openUploadFolderPicker(files) {
-        pendingUploadFiles = files;
-        uploadPickerCurrentParentId = 0;
-        uploadPickerBreadcrumbStack = [{id:0, name:'根目录'}];
-        uploadPickerSelectedFolderId = currentParentId;
-        uploadPickerSelectedFolderName = currentParentId === 0 ? '根目录' : '当前文件夹';
-        updateUploadPickerBreadcrumb();
-        loadUploadPickerFolderList();
-        document.getElementById('uploadFolderPickerModal').style.display = 'block';
-        return new Promise((resolve) => {
-            window._uploadFolderPickerResolve = resolve;
-        });
-    }
-
-    function closeUploadFolderPickerModal() {
-        document.getElementById('uploadFolderPickerModal').style.display = 'none';
-        if (window._uploadFolderPickerResolve) {
-            window._uploadFolderPickerResolve(null);
-            delete window._uploadFolderPickerResolve;
+    // ---------- 文件夹选择器（通用） ----------
+    function openFolderPicker(mode, payload) {
+        pickerMode = mode;
+        pickerCurrentParentId = 0;
+        pickerBreadcrumbStack = [{id:0, name:'根目录'}];
+        pickerSelectedFolderId = 0;
+        pickerSelectedFolderName = '根目录';
+        if (mode === 'move') {
+            moveFileId = payload;
+            document.getElementById('pickerTitle').innerText = '选择目标文件夹';
+        } else {
+            document.getElementById('pickerTitle').innerText = '选择上传目标文件夹';
         }
+        updatePickerBreadcrumb();
+        loadPickerFolderList();
+        document.getElementById('folderPickerModal').style.display = 'block';
+        return new Promise((resolve) => { pickerResolve = resolve; });
     }
 
-    function updateUploadPickerBreadcrumb() {
-        const bc = document.getElementById('uploadPickerBreadcrumb');
+    function closeFolderPickerModal() {
+        document.getElementById('folderPickerModal').style.display = 'none';
+        if (pickerResolve) { pickerResolve(null); pickerResolve = null; }
+    }
+
+    function updatePickerBreadcrumb() {
+        const bc = document.getElementById('pickerBreadcrumb');
         let html = '';
-        uploadPickerBreadcrumbStack.forEach((item, index) => {
+        pickerBreadcrumbStack.forEach((item, index) => {
             if (index > 0) html += ' <span>/</span> ';
-            html += `<a onclick="uploadPickerNavigateTo(${item.id}, ${index})">${item.name}</a>`;
+            html += `<a onclick="pickerNavigateTo(${item.id}, ${index})">${item.name}</a>`;
         });
         bc.innerHTML = html;
     }
 
-    function uploadPickerNavigateTo(parentId, stackIndex) {
+    function pickerNavigateTo(parentId, stackIndex) {
         if (stackIndex !== undefined) {
-            uploadPickerBreadcrumbStack = uploadPickerBreadcrumbStack.slice(0, stackIndex + 1);
+            pickerBreadcrumbStack = pickerBreadcrumbStack.slice(0, stackIndex + 1);
         } else {
-            uploadPickerBreadcrumbStack.push({id: parentId, name: '...'});
+            pickerBreadcrumbStack.push({id: parentId, name: '...'});
         }
-        uploadPickerCurrentParentId = parentId;
-        loadUploadPickerFolderList().then(() => {
+        pickerCurrentParentId = parentId;
+        loadPickerFolderList().then(() => {
             if (stackIndex === undefined) {
-                const currentFolder = document.querySelector(`[data-upload-folder-id="${parentId}"]`);
+                const currentFolder = document.querySelector(`[data-picker-folder-id="${parentId}"]`);
                 if (currentFolder) {
                     const name = currentFolder.querySelector('.folder-name')?.innerText || '文件夹';
-                    uploadPickerBreadcrumbStack[uploadPickerBreadcrumbStack.length-1].name = name;
-                    updateUploadPickerBreadcrumb();
+                    pickerBreadcrumbStack[pickerBreadcrumbStack.length-1].name = name;
+                    updatePickerBreadcrumb();
                 }
             }
         });
     }
 
-    async function loadUploadPickerFolderList() {
-        const resp = await fetch('/api/file/list?parentId=' + uploadPickerCurrentParentId);
+    async function loadPickerFolderList() {
+        const resp = await fetch('/api/file/list?parentId=' + pickerCurrentParentId);
         const files = await resp.json();
         const folders = files.filter(f => f.fileSize === 0 && !f.filePath);
-        const container = document.getElementById('uploadFolderPickerList');
+        const container = document.getElementById('folderPickerList');
         container.innerHTML = '';
         if (folders.length === 0) {
             container.innerHTML = '<div style="padding:16px; text-align:center; color:#64748b;">此文件夹下没有子文件夹</div>';
@@ -828,47 +983,92 @@
             folders.forEach(folder => {
                 const div = document.createElement('div');
                 div.className = 'folder-picker-item';
-                div.setAttribute('data-upload-folder-id', folder.id);
+                div.setAttribute('data-picker-folder-id', folder.id);
                 div.innerHTML = `<i class="fas fa-folder folder-icon"></i> <span class="folder-name">${folder.fileName}</span>`;
                 div.onclick = (e) => {
-                    document.querySelectorAll('#uploadFolderPickerList .folder-picker-item').forEach(el => el.classList.remove('selected'));
+                    document.querySelectorAll('#folderPickerList .folder-picker-item').forEach(el => el.classList.remove('selected'));
                     div.classList.add('selected');
-                    uploadPickerSelectedFolderId = folder.id;
-                    uploadPickerSelectedFolderName = folder.fileName;
+                    pickerSelectedFolderId = folder.id;
+                    pickerSelectedFolderName = folder.fileName;
                 };
-                div.ondblclick = () => uploadPickerNavigateTo(folder.id);
+                div.ondblclick = () => pickerNavigateTo(folder.id);
                 container.appendChild(div);
-                if (folder.id === uploadPickerSelectedFolderId) div.classList.add('selected');
+                if (folder.id === pickerSelectedFolderId) div.classList.add('selected');
             });
         }
     }
 
-    document.getElementById('selectUploadFolderBtn').onclick = function() {
-        let path = uploadPickerBreadcrumbStack.map(item => item.name).join(' / ');
-        if (uploadPickerSelectedFolderId === 0) path = '根目录';
-        else path = path + ' / ' + uploadPickerSelectedFolderName;
-        uploadTargetParentId = uploadPickerSelectedFolderId;
-        uploadTargetPath = path;
-        if (window._uploadFolderPickerResolve) {
-            window._uploadFolderPickerResolve({ parentId: uploadTargetParentId, path: uploadTargetPath });
-            delete window._uploadFolderPickerResolve;
+    document.getElementById('selectPickerFolderBtn').onclick = function() {
+        if (pickerResolve) {
+            pickerResolve({ parentId: pickerSelectedFolderId, path: pickerBreadcrumbStack.map(i=>i.name).join(' / ') + (pickerSelectedFolderId===0?'':' / '+pickerSelectedFolderName) });
+            pickerResolve = null;
         }
-        closeUploadFolderPickerModal();
+        closeFolderPickerModal();
     };
 
-    document.getElementById('newFolderInUploadPickerBtn').onclick = function() {
+    document.getElementById('newFolderInPickerBtn').onclick = function() {
         openNewFolderModalForPicker((folderName) => {
             if (!folderName) return;
             const formData = new FormData();
             formData.append('folderName', folderName);
-            formData.append('parentId', uploadPickerCurrentParentId);
+            formData.append('parentId', pickerCurrentParentId);
             fetch('/api/file/folder/create', { method: 'POST', body: formData })
                 .then(res => res.json())
                 .then(data => {
                     showToast(data.message);
-                    if (data.success) loadUploadPickerFolderList();
+                    if (data.success) loadPickerFolderList();
                 });
         });
+    };
+
+    // ---------- 移动功能 ----------
+    async function openMovePicker(fileId) {
+        const result = await openFolderPicker('move', fileId);
+        if (!result) return;
+        const targetParentId = result.parentId;
+        const params = new URLSearchParams();
+        params.append('fileId', fileId);
+        params.append('targetParentId', targetParentId);
+        fetch('/api/file/move', { method: 'POST', body: params })
+            .then(res => res.json())
+            .then(data => {
+                showToast(data.message);
+                if (data.success) refreshCurrentView();
+            });
+    }
+
+    // ---------- 上传改造 ----------
+    const fileInput = document.getElementById('fileInput');
+    const uploadBtn = document.getElementById('uploadBtn');
+    const confirmUploadBtn = document.getElementById('confirmUploadBtn');
+
+    uploadBtn.onclick = () => fileInput.click();
+
+    fileInput.onchange = () => {
+        const files = Array.from(fileInput.files);
+        pendingUploadFiles = files;
+        updateSelectedFilesDisplay();
+    };
+
+    confirmUploadBtn.onclick = async () => {
+        if (pendingUploadFiles.length === 0) return;
+        const folderResult = await openFolderPicker('upload');
+        if (!folderResult) {
+            // 不清空，保留选择以便重新选择文件夹
+            return;
+        }
+        const targetParentId = folderResult.parentId;
+        showToast(`开始上传到 ${folderResult.path}，共 ${pendingUploadFiles.length} 个文件`);
+        for (const file of pendingUploadFiles) {
+            await uploadSingleFile(file, targetParentId);
+        }
+        showToast('上传任务完成');
+        refreshCurrentView();
+        // 清空已选文件
+        fileInput.value = '';
+        pendingUploadFiles = [];
+        updateSelectedFilesDisplay();
+        loadSpaceInfo();
     };
 
     async function checkFileExistsInTarget(fileName, parentId) {
@@ -935,31 +1135,6 @@
             return false;
         }
     }
-
-    document.getElementById('uploadBtn').onclick = async () => {
-        const fileInput = document.getElementById('fileInput');
-        const files = Array.from(fileInput.files);
-        if (files.length === 0) {
-            showToast('请选择文件');
-            return;
-        }
-
-        const folderResult = await openUploadFolderPicker(files);
-        if (!folderResult) {
-            fileInput.value = '';
-            return;
-        }
-        const targetParentId = folderResult.parentId;
-
-        showToast(`开始上传到 ${folderResult.path}，共 ${files.length} 个文件`);
-        for (const file of files) {
-            await uploadSingleFile(file, targetParentId);
-        }
-        showToast('上传任务完成');
-        refreshCurrentView();
-        fileInput.value = '';
-        loadSpaceInfo();
-    };
 
     function openVersionModal(fileId) {
         currentFileIdForVersion = fileId;
@@ -1069,7 +1244,7 @@
         if (event.target.classList.contains('modal')) {
             if (event.target.id === 'imagePreviewModal') closeImagePreview();
             else if (event.target.id === 'newFolderModal') closeNewFolderModal();
-            else if (event.target.id === 'uploadFolderPickerModal') closeUploadFolderPickerModal();
+            else if (event.target.id === 'folderPickerModal') closeFolderPickerModal();
             else if (event.target.id !== 'packageShareModal') {
                 event.target.style.display = 'none';
             }

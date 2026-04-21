@@ -12,7 +12,9 @@ public interface FileMapper {
     @Options(useGeneratedKeys = true, keyProperty = "id")
     int insert(FileInfo file);
 
-    @Select("SELECT * FROM file WHERE user_id = #{userId} AND parent_id = #{parentId} AND deleted = FALSE")
+    @Select("SELECT * FROM file WHERE user_id = #{userId} AND parent_id = #{parentId} AND deleted = FALSE " +
+            "AND (file_path NOT LIKE '%/packages/%' OR file_path = '') " +
+            "ORDER BY CASE WHEN file_size = 0 AND file_path = '' THEN 0 ELSE 1 END, file_name")
     List<FileInfo> findByUserIdAndParentId(@Param("userId") Long userId, @Param("parentId") Long parentId);
 
     @Select("SELECT * FROM file WHERE id = #{id} AND user_id = #{userId} AND deleted = FALSE")
@@ -36,13 +38,14 @@ public interface FileMapper {
     @Select("SELECT * FROM file WHERE user_id = #{userId} AND parent_id = #{parentId} AND file_name = #{fileName} AND deleted = FALSE")
     FileInfo findByUserIdAndParentIdAndFileName(@Param("userId") Long userId, @Param("parentId") Long parentId, @Param("fileName") String fileName);
 
-    @Update("UPDATE file SET file_name = #{fileName}, file_size = #{fileSize}, file_path = #{filePath}, file_md5 = #{fileMd5}, version = #{version} WHERE id = #{id}")
+    @Update("UPDATE file SET file_name = #{fileName}, file_size = #{fileSize}, file_path = #{filePath}, file_md5 = #{fileMd5}, version = #{version}, parent_id = #{parentId} WHERE id = #{id}")
     int update(FileInfo file);
 
     @Select("SELECT * FROM file WHERE id = #{id}")
     FileInfo findById(@Param("id") Long id);
 
-    @Select("SELECT * FROM file WHERE user_id = #{userId} AND deleted = FALSE")
+    @Select("SELECT * FROM file WHERE user_id = #{userId} AND deleted = FALSE " +
+            "AND (file_path NOT LIKE '%/packages/%' OR file_path = '')")
     List<FileInfo> findByUserIdAndDeletedFalse(@Param("userId") Long userId);
 
     @Select("SELECT * FROM file WHERE file_md5 = #{md5} AND file_size = #{fileSize} AND deleted = FALSE LIMIT 1")
@@ -51,9 +54,11 @@ public interface FileMapper {
     @Select("SELECT COUNT(*) FROM file WHERE file_md5 = #{md5} AND file_size = #{fileSize} AND id != #{id}")
     int countByMd5AndSizeExcludingId(@Param("md5") String md5, @Param("fileSize") Long fileSize, @Param("id") Long id);
 
-    @Select("SELECT * FROM file WHERE user_id = #{userId} AND deleted = FALSE AND file_size > 0")
+    @Select("SELECT * FROM file WHERE user_id = #{userId} AND deleted = FALSE AND file_size > 0 " +
+            "AND (file_path NOT LIKE '%/packages/%' OR file_path = '')")
     List<FileInfo> findAllNonFolderFilesByUserId(@Param("userId") Long userId);
 
-    @Select("SELECT * FROM file WHERE user_id = #{userId} AND deleted = FALSE AND file_size > 0 AND file_name LIKE CONCAT('%', #{keyword}, '%')")
+    @Select("SELECT * FROM file WHERE user_id = #{userId} AND deleted = FALSE AND file_size > 0 AND file_name LIKE CONCAT('%', #{keyword}, '%') " +
+            "AND (file_path NOT LIKE '%/packages/%' OR file_path = '')")
     List<FileInfo> searchByName(@Param("userId") Long userId, @Param("keyword") String keyword);
 }

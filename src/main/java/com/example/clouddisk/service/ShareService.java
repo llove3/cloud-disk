@@ -5,10 +5,19 @@ import com.example.clouddisk.entity.Share;
 import com.example.clouddisk.mapper.FileMapper;
 import com.example.clouddisk.mapper.ShareMapper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.security.SecureRandom;
 import java.util.Date;
 import java.util.List;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 
 @Service
 public class ShareService {
@@ -18,6 +27,9 @@ public class ShareService {
 
     @Autowired
     private FileMapper fileMapper;
+
+    @Value("${file.upload-dir}")
+    private String uploadDir;
 
     private static final String CHARACTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
     private static final int CODE_LENGTH = 8;
@@ -47,10 +59,70 @@ public class ShareService {
         share.setShareCode(code);
         share.setPassword(password != null && !password.isEmpty() ? password : null);
         share.setExpireTime(expireTime);
+        share.setIsPackage(false);
         shareMapper.insert(share);
         return share;
     }
 
+    @Transactional
+    public Share createPackageShare(Long userId, List<Long> fileIds, String zipName, String password, Integer expireDays) throws IOException {
+        if (fileIds == null || fileIds.isEmpty()) {
+            throw new RuntimeException("请至少选择一个文件");
+        }
+        String safeZipName = (zipName != null && !zipName.trim().isEmpty()) ? zipName.trim() : "打包文件";
+        if (!safeZipName.toLowerCase().endsWith(".zip")) {
+            safeZipName += ".zip";
+        }
+        String userDir = uploadDir + userId + "/packages/";
+        Path userPath = Paths.get(userDir);
+        if (!Files.exists(userPath)) {
+            Files.createDirectories(userPath);
+        }
+        String zipFileName = System.currentTimeMillis() + "_" + safeZipName;
+        String zipFilePath = userDir + zipFileName;
+
+        try (FileOutputStream fos = new FileOutputStream(zipFilePath);
+             ZipOutputStream zos = new ZipOutputStream(fos)) {
+            for (Long fileId : fileIds) {
+                FileInfo file = fileMapper.findByIdAndUserId(fileId, userId);
+                if (file == null || file.getFileSize() == 0) continue;
+                Path sourcePath = Paths.get(file.getFilePath());
+                if (!Files.exists(sourcePath)) continue;
+                ZipEntry entry = new ZipEntry(file.getFileName());
+                zos.putNextEntry(entry);
+                Files.copy(sourcePath, zos);
+                zos.closeEntry();
+            }
+        }
+
+        FileInfo packageFile = new FileInfo();
+        packageFile.setUserId(userId);
+        packageFile.setFileName(safeZipName);
+        packageFile.setFileSize(new File(zipFilePath).length());
+        packageFile.setFilePath(zipFilePath);
+        packageFile.setFileMd5("");
+        packageFile.setParentId(0L);
+        packageFile.setVersion(1);
+        packageFile.setDeleted(false);
+        fileMapper.insert(packageFile);
+
+        String code = generateShareCode();
+        Date expireTime = null;
+        if (expireDays != null && expireDays > 0) {
+            expireTime = new Date(System.currentTimeMillis() + expireDays * 24L * 60 * 60 * 1000);
+        }
+        Share share = new Share();
+        share.setFileId(packageFile.getId());
+        share.setUserId(userId);
+        share.setShareCode(code);
+        share.setPassword(password != null && !password.isEmpty() ? password : null);
+        share.setExpireTime(expireTime);
+        share.setIsPackage(true);
+        shareMapper.insert(share);
+        return share;
+    }
+
+    @Transactional
     public FileInfo getFileByShareCode(String code, String inputPassword) {
         Share share = shareMapper.findByCode(code);
         if (share == null) {
@@ -66,6 +138,7 @@ public class ShareService {
         if (file == null || file.getDeleted()) {
             throw new RuntimeException("原文件已被删除");
         }
+        shareMapper.incrementVisitCount(code);
         return file;
     }
 
@@ -81,5 +154,4 @@ public class ShareService {
             throw new RuntimeException("无权删除此分享");
         }
     }
-
 }

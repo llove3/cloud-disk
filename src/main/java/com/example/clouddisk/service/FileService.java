@@ -12,13 +12,15 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
+import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.MessageDigest;
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 
 @Service
 public class FileService {
@@ -48,6 +50,11 @@ public class FileService {
         CATEGORY_EXTENSIONS.put("archive", Arrays.asList("zip", "rar", "7z", "tar", "gz"));
     }
 
+    private String sanitizeFileName(String fileName) {
+        if (fileName == null) return "unnamed";
+        return fileName.replaceAll("[\\\\/:*?\"<>|]", "_");
+    }
+
     private String getFileMd5(MultipartFile file) throws Exception {
         MessageDigest md = MessageDigest.getInstance("MD5");
         byte[] buffer = new byte[8192];
@@ -64,7 +71,7 @@ public class FileService {
     public User saveFile(Long userId, Long parentId, MultipartFile file) throws Exception {
         String md5 = getFileMd5(file);
         Long fileSize = file.getSize();
-        String originalName = file.getOriginalFilename();
+        String originalName = sanitizeFileName(file.getOriginalFilename());
 
         FileInfo sameMd5File = fileMapper.findByMd5AndSize(md5, fileSize);
         String storePath;
@@ -303,13 +310,14 @@ public class FileService {
     }
 
     public void createFolder(Long userId, Long parentId, String folderName) {
-        FileInfo existing = fileMapper.findByUserIdAndParentIdAndFileName(userId, parentId, folderName);
+        String safeName = sanitizeFileName(folderName);
+        FileInfo existing = fileMapper.findByUserIdAndParentIdAndFileName(userId, parentId, safeName);
         if (existing != null) {
             throw new RuntimeException("文件夹已存在");
         }
         FileInfo folder = new FileInfo();
         folder.setUserId(userId);
-        folder.setFileName(folderName);
+        folder.setFileName(safeName);
         folder.setFileSize(0L);
         folder.setFilePath("");
         folder.setFileMd5("");
@@ -317,5 +325,32 @@ public class FileService {
         folder.setVersion(1);
         folder.setDeleted(false);
         fileMapper.insert(folder);
+    }
+
+    @Transactional
+    public void batchDelete(List<Long> fileIds, Long userId) {
+        for (Long fileId : fileIds) {
+            FileInfo file = getFile(fileId, userId);
+            if (file != null) {
+                fileMapper.softDeleteById(fileId);
+            }
+        }
+    }
+
+    public byte[] batchDownloadAsZip(List<Long> fileIds, Long userId) throws IOException {
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        try (ZipOutputStream zos = new ZipOutputStream(baos)) {
+            for (Long fileId : fileIds) {
+                FileInfo file = getFile(fileId, userId);
+                if (file == null || file.getFileSize() == 0) continue;
+                Path path = Paths.get(file.getFilePath());
+                if (!Files.exists(path)) continue;
+                String entryName = file.getFileName();
+                zos.putNextEntry(new ZipEntry(entryName));
+                Files.copy(path, zos);
+                zos.closeEntry();
+            }
+        }
+        return baos.toByteArray();
     }
 }

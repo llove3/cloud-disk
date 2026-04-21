@@ -6,9 +6,9 @@ import com.example.clouddisk.mapper.FileMapper;
 import com.example.clouddisk.mapper.ShareMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-
 import java.security.SecureRandom;
 import java.util.Date;
+import java.util.List;
 
 @Service
 public class ShareService {
@@ -36,13 +36,11 @@ public class ShareService {
         if (file == null) {
             throw new RuntimeException("文件不存在或无权分享");
         }
-
         String code = generateShareCode();
         Date expireTime = null;
         if (expireDays != null && expireDays > 0) {
             expireTime = new Date(System.currentTimeMillis() + expireDays * 24L * 60 * 60 * 1000);
         }
-
         Share share = new Share();
         share.setFileId(fileId);
         share.setUserId(userId);
@@ -70,4 +68,18 @@ public class ShareService {
         }
         return file;
     }
+
+    public List<Share> listShares(Long userId) {
+        return shareMapper.findByUserId(userId);
+    }
+
+    public void deleteShare(Long shareId, Long userId) {
+        Share share = shareMapper.findById(shareId);
+        if (share != null && share.getUserId().equals(userId)) {
+            shareMapper.deleteById(shareId);
+        } else {
+            throw new RuntimeException("无权删除此分享");
+        }
+    }
+
 }

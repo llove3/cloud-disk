@@ -130,4 +130,88 @@ public class FileController {
             return "回滚失败：" + e.getMessage();
         }
     }
+
+    @PostMapping("/folder/create")
+    public Map<String, Object> createFolder(@RequestParam String folderName,
+                                            @RequestParam(value = "parentId", defaultValue = "0") Long parentId,
+                                            HttpSession session) {
+        Map<String, Object> result = new HashMap<>();
+        User user = (User) session.getAttribute("user");
+        if (user == null) {
+            result.put("success", false);
+            result.put("message", "请先登录");
+            return result;
+        }
+        try {
+            fileService.createFolder(user.getId(), parentId, folderName);
+            result.put("success", true);
+            result.put("message", "文件夹创建成功");
+        } catch (Exception e) {
+            result.put("success", false);
+            result.put("message", e.getMessage());
+        }
+        return result;
+    }
+
+    @GetMapping("/preview/{fileId}")
+    public ResponseEntity<?> preview(@PathVariable Long fileId, HttpSession session) throws IOException {
+        User user = (User) session.getAttribute("user");
+        if (user == null) {
+            return ResponseEntity.status(401).body("请先登录");
+        }
+        FileInfo fileInfo = fileService.getFile(fileId, user.getId());
+        if (fileInfo == null || fileInfo.getFileSize() == 0) {
+            return ResponseEntity.status(404).body("文件不存在");
+        }
+        Path path = Paths.get(fileInfo.getFilePath());
+        if (!Files.exists(path)) {
+            return ResponseEntity.status(404).body("文件不存在");
+        }
+        String fileName = fileInfo.getFileName().toLowerCase();
+        String mimeType = Files.probeContentType(path);
+        if (mimeType == null) {
+            mimeType = MediaType.APPLICATION_OCTET_STREAM_VALUE;
+        }
+
+        if (fileName.endsWith(".txt") || fileName.endsWith(".md") || fileName.endsWith(".java") || fileName.endsWith(".xml") || fileName.endsWith(".json") || fileName.endsWith(".properties") || fileName.endsWith(".yml") || fileName.endsWith(".yaml")) {
+            String content = Files.readString(path);
+            return ResponseEntity.ok().contentType(MediaType.TEXT_PLAIN).body(content);
+        }
+
+        byte[] data = Files.readAllBytes(path);
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType(mimeType))
+                .body(data);
+    }
+
+    @GetMapping("/version/preview/{versionId}")
+    public ResponseEntity<?> previewVersion(@PathVariable Long versionId, HttpSession session) throws IOException {
+        User user = (User) session.getAttribute("user");
+        if (user == null) {
+            return ResponseEntity.status(401).body("请先登录");
+        }
+        FileVersion version = fileService.getVersionById(versionId, user.getId());
+        if (version == null) {
+            return ResponseEntity.status(404).body("版本不存在");
+        }
+        Path path = Paths.get(version.getFilePath());
+        if (!Files.exists(path)) {
+            return ResponseEntity.status(404).body("文件不存在");
+        }
+        String fileName = version.getFileName().toLowerCase();
+        String mimeType = Files.probeContentType(path);
+        if (mimeType == null) {
+            mimeType = MediaType.APPLICATION_OCTET_STREAM_VALUE;
+        }
+
+        if (fileName.endsWith(".txt") || fileName.endsWith(".md") || fileName.endsWith(".java") || fileName.endsWith(".xml") || fileName.endsWith(".json") || fileName.endsWith(".properties") || fileName.endsWith(".yml") || fileName.endsWith(".yaml")) {
+            String content = Files.readString(path);
+            return ResponseEntity.ok().contentType(MediaType.TEXT_PLAIN).body(content);
+        }
+
+        byte[] data = Files.readAllBytes(path);
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType(mimeType))
+                .body(data);
+    }
 }

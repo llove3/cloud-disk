@@ -1,5 +1,7 @@
 package com.example.clouddisk.entity;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
+
 import java.util.Date;
 
 public class User {
@@ -8,6 +10,7 @@ public class User {
     private String email;
     private String password;
     private String salt;
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
     private Date createdAt;
     private Long totalSpace;
     private Long usedSpace;

@@ -27,4 +27,10 @@ public class PageController {
 
     @GetMapping("/s/{code}")
     public String sharePage(@PathVariable String code) { return "share"; }
+
+    @GetMapping("/shares")
+    public String sharesPage() { return "shares"; }
+
+
+
 }

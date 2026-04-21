@@ -2,7 +2,6 @@ package com.example.clouddisk.mapper;
 
 import com.example.clouddisk.entity.FileVersion;
 import org.apache.ibatis.annotations.*;
-
 import java.util.List;
 
 @Mapper
@@ -28,7 +27,12 @@ public interface FileVersionMapper {
     @Delete("DELETE FROM file_version WHERE id = #{id}")
     int deleteById(@Param("id") Long id);
 
-
     @Select("SELECT fv.* FROM file_version fv JOIN file f ON fv.file_id = f.id WHERE f.user_id = #{userId}")
     List<FileVersion> findVersionsByUserId(@Param("userId") Long userId);
+
+    @Select("SELECT * FROM file_version WHERE file_md5 = #{md5}")
+    List<FileVersion> findByMd5(@Param("md5") String md5);
+
+    @Select("SELECT COUNT(*) FROM file_version WHERE file_md5 = #{md5} AND id != #{id}")
+    int countByMd5ExcludingId(@Param("md5") String md5, @Param("id") Long id);
 }

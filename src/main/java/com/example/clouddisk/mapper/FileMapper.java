@@ -45,5 +45,9 @@ public interface FileMapper {
     @Select("SELECT * FROM file WHERE user_id = #{userId} AND deleted = FALSE")
     List<FileInfo> findByUserIdAndDeletedFalse(@Param("userId") Long userId);
 
+    @Select("SELECT * FROM file WHERE file_md5 = #{md5} AND file_size = #{fileSize} AND deleted = FALSE LIMIT 1")
+    FileInfo findByMd5AndSize(@Param("md5") String md5, @Param("fileSize") Long fileSize);
 
+    @Select("SELECT COUNT(*) FROM file WHERE file_md5 = #{md5} AND file_size = #{fileSize} AND id != #{id}")
+    int countByMd5AndSizeExcludingId(@Param("md5") String md5, @Param("fileSize") Long fileSize, @Param("id") Long id);
 }

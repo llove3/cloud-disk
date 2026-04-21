@@ -17,9 +17,12 @@
         .avatar-icon { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; border: 1px solid #e2e8f0; cursor: pointer; }
         .upload-area { background: white; padding: 16px 24px; border-radius: 20px; display: flex; align-items: center; gap: 16px; margin-bottom: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.02); border: 1px solid #e2e8f0; }
         .upload-area input[type="file"] { flex: 1; padding: 8px; border: 2px dashed #cbd5e1; border-radius: 12px; background: #f8fafc; cursor: pointer; }
-        .upload-btn { background: #3b82f6; color: white; border: none; padding: 12px 28px; border-radius: 30px; font-weight: 600; cursor: pointer; transition: all 0.2s; box-shadow: 0 4px 10px rgba(59,130,246,0.2); display: flex; align-items: center; gap: 8px; }
-        .upload-btn:hover { background: #2563eb; transform: translateY(-2px); box-shadow: 0 8px 18px rgba(59,130,246,0.25); }
-        .list-header { display: flex; justify-content: flex-end; margin-bottom: 16px; }
+        .upload-btn, .folder-btn { background: #3b82f6; color: white; border: none; padding: 12px 28px; border-radius: 30px; font-weight: 600; cursor: pointer; transition: all 0.2s; box-shadow: 0 4px 10px rgba(59,130,246,0.2); display: flex; align-items: center; gap: 8px; }
+        .folder-btn { background: #8b5cf6; box-shadow: 0 4px 10px rgba(139,92,246,0.2); }
+        .upload-btn:hover, .folder-btn:hover { transform: translateY(-2px); }
+        .list-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+        .breadcrumb { display: flex; align-items: center; gap: 8px; }
+        .breadcrumb a { color: #3b82f6; text-decoration: none; cursor: pointer; }
         .space-card { background: white; padding: 8px 20px; border-radius: 40px; display: inline-flex; align-items: center; gap: 16px; box-shadow: 0 2px 6px rgba(0,0,0,0.03); border: 1px solid #eef2f6; }
         .space-text { font-size: 14px; font-weight: 500; color: #475569; }
         progress { width: 180px; height: 8px; border-radius: 10px; overflow: hidden; }
@@ -36,6 +39,7 @@
         .action-buttons { display: flex; gap: 8px; flex-wrap: wrap; }
         .action-btn { background: none; border: 1px solid #e2e8f0; padding: 6px 12px; border-radius: 20px; font-size: 13px; font-weight: 500; color: #475569; cursor: pointer; transition: all 0.15s; display: inline-flex; align-items: center; gap: 4px; }
         .action-btn:hover { background: #3b82f6; border-color: #3b82f6; color: white; }
+        .folder-icon { color: #fbbf24; margin-right: 6px; }
         .recycle-fab { position: fixed; bottom: 30px; right: 30px; background: #1e293b; color: white; width: 56px; height: 56px; border-radius: 30px; display: flex; align-items: center; justify-content: center; box-shadow: 0 8px 20px rgba(0,0,0,0.15); transition: all 0.2s; text-decoration: none; z-index: 100; }
         .recycle-fab:hover { background: #0f172a; transform: scale(1.05); }
         #toast { visibility: hidden; min-width: 280px; background: #1e293b; color: white; text-align: center; border-radius: 60px; padding: 14px 24px; position: fixed; left: 50%; bottom: 30px; transform: translateX(-50%); z-index: 1000; font-weight: 500; box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
@@ -61,6 +65,17 @@
         .rename-dialog button { padding: 10px 20px; border-radius: 30px; border: none; font-weight: 600; cursor: pointer; margin-right: 10px; }
         #renameConfirm { background: #3b82f6; color: white; }
         #renameCancel { background: #f1f5f9; color: #1e293b; }
+        .preview-modal-content { width: 80%; height: 80%; margin: 5% auto; }
+        .preview-iframe { width: 100%; height: 100%; border: none; }
+        .image-preview-content { width: auto; max-width: 90vw; text-align: center; background: transparent; box-shadow: none; padding: 0; }
+        #previewImage { max-width: 100%; max-height: 85vh; object-fit: contain; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
+        .folder-path-row { display: flex; align-items: center; gap: 8px; margin-bottom: 20px; }
+        .folder-path-row input { flex: 1; background: #f8fafc; }
+        .folder-picker-list { max-height: 300px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 12px; margin-bottom: 16px; }
+        .folder-picker-item { padding: 12px 16px; border-bottom: 1px solid #f1f5f9; cursor: pointer; display: flex; align-items: center; gap: 8px; }
+        .folder-picker-item:hover { background: #f1f5ff; }
+        .folder-picker-item.selected { background: #e0edff; border-left: 4px solid #3b82f6; }
+        .picker-actions { display: flex; gap: 8px; margin-top: 8px; }
     </style>
 </head>
 <body>
@@ -73,6 +88,7 @@
                  alt="头像">
         </a>
         <span id="headerUsername" th:text="${session.user.username}"></span>
+        <a href="/shares"><i class="fas fa-share-alt"></i> 我的分享</a>
         <span class="logout-link" onclick="logoutAndClose()"><i class="fas fa-sign-out-alt"></i> 退出</span>
         <span class="logout-link" onclick="switchAccount()"><i class="fas fa-user-friends"></i> 切换账号</span>
     </div>
@@ -81,9 +97,13 @@
 <div class="upload-area">
     <input type="file" id="fileInput" multiple>
     <button id="uploadBtn" class="upload-btn"><i class="fas fa-upload"></i>上传文件</button>
+    <button id="newFolderBtn" class="folder-btn"><i class="fas fa-folder-plus"></i>新建文件夹</button>
 </div>
 
 <div class="list-header">
+    <div class="breadcrumb" id="breadcrumb">
+        <a onclick="navigateTo(0)"><i class="fas fa-home"></i> 根目录</a>
+    </div>
     <div class="space-card">
         <i class="fas fa-database" style="color: #3b82f6;"></i>
         <span class="space-text" id="spaceInfo"></span>
@@ -102,6 +122,45 @@
 <a href="/recycle" class="recycle-fab" title="回收站"><i class="fas fa-trash-alt"></i></a>
 
 <div id="toast"></div>
+
+<div id="uploadSetupModal" class="modal">
+    <div class="modal-content" style="width: 480px;">
+        <span class="close" onclick="closeUploadSetupModal()">&times;</span>
+        <h3>上传文件设置</h3>
+        <div style="margin-bottom: 16px;">
+            <label style="display: block; margin-bottom: 6px; font-weight: 500;">文件名</label>
+            <input type="text" id="uploadFileName" style="width: 100%; padding: 12px 16px; border: 2px solid #e2e8f0; border-radius: 12px; font-size: 14px;">
+        </div>
+        <div style="margin-bottom: 16px;">
+            <label style="display: block; margin-bottom: 6px; font-weight: 500;">目标文件夹</label>
+            <div class="folder-path-row">
+                <input type="text" id="selectedFolderPath" readonly style="flex: 1; padding: 12px 16px; border: 2px solid #e2e8f0; border-radius: 12px; background: #f8fafc;">
+                <button type="button" id="browseFolderBtn" style="padding: 12px 16px; background: #f1f5f9; border: 2px solid #e2e8f0; border-radius: 12px; cursor: pointer; white-space: nowrap;"><i class="fas fa-folder-open"></i> 浏览</button>
+            </div>
+        </div>
+        <div style="text-align: right;">
+            <button id="uploadSetupCancel" style="padding: 10px 20px; border-radius: 30px; border: none; font-weight: 600; cursor: pointer; background: #f1f5f9; margin-right: 10px;">取消</button>
+            <button id="uploadSetupConfirm" style="padding: 10px 20px; border-radius: 30px; border: none; font-weight: 600; cursor: pointer; background: #3b82f6; color: white;">开始上传</button>
+        </div>
+    </div>
+</div>
+
+<div id="folderPickerModal" class="modal">
+    <div class="modal-content" style="width: 550px;">
+        <span class="close" onclick="closeFolderPickerModal()">&times;</span>
+        <h3>选择文件夹</h3>
+        <div class="breadcrumb" id="pickerBreadcrumb" style="margin-bottom: 12px;">
+            <a onclick="pickerNavigateTo(0)"><i class="fas fa-home"></i> 根目录</a>
+        </div>
+        <div class="folder-picker-list" id="folderPickerList"></div>
+        <div class="picker-actions">
+            <button id="newFolderInPickerBtn" style="padding: 8px 16px; background: #8b5cf6; color: white; border: none; border-radius: 30px; font-weight: 500; cursor: pointer;"><i class="fas fa-folder-plus"></i> 新建文件夹</button>
+            <div style="flex:1;"></div>
+            <button id="selectCurrentFolderBtn" style="padding: 10px 24px; background: #3b82f6; color: white; border: none; border-radius: 30px; font-weight: 600; cursor: pointer;">选择此文件夹</button>
+        </div>
+    </div>
+</div>
+
 <div id="renameModal" class="modal">
     <div class="rename-dialog">
         <h3>重命名文件</h3>
@@ -134,11 +193,36 @@
         <button id="confirmNo">取消</button>
     </div>
 </div>
+<div id="previewModal" class="modal">
+    <div class="modal-content preview-modal-content">
+        <span class="close" onclick="closePreviewModal()">&times;</span>
+        <iframe id="previewFrame" class="preview-iframe"></iframe>
+    </div>
+</div>
+<div id="imagePreviewModal" class="modal">
+    <div class="modal-content image-preview-content">
+        <span class="close" onclick="closeImagePreview()">&times;</span>
+        <img id="previewImage" alt="预览图片">
+    </div>
+</div>
 
 <script>
+    let currentParentId = 0;
     let currentFileIdForVersion = null;
     let confirmCallback = null;
     let renamePromiseResolve = null;
+    let folderPromiseResolve = null;
+    let currentImageUrl = null;
+
+    let pendingFiles = [];
+    let uploadSetupResolve = null;
+    let selectedTargetParentId = 0;
+    let selectedTargetPath = '根目录';
+
+    let pickerCurrentParentId = 0;
+    let pickerBreadcrumbStack = [{id:0, name:'根目录'}];
+    let pickerSelectedFolderId = 0;
+    let pickerSelectedFolderName = '根目录';
 
     function parseLocalTime(dateStr) {
         if (!dateStr) return '';
@@ -169,7 +253,7 @@
     };
     document.getElementById('confirmNo').onclick = closeConfirm;
     function formatSize(bytes) {
-        if (bytes === 0) return '0 B';
+        if (bytes === 0) return '-';
         const k = 1024;
         const sizes = ['B', 'KB', 'MB', 'GB'];
         const i = Math.floor(Math.log(bytes) / Math.log(k));
@@ -193,30 +277,66 @@
     }
     document.getElementById('calibrateSpaceBtn').onclick = calibrateSpace;
 
+    function navigateTo(parentId) {
+        currentParentId = parentId;
+        updateBreadcrumb();
+        loadFileList();
+    }
+
+    function updateBreadcrumb() {
+        const bc = document.getElementById('breadcrumb');
+        bc.innerHTML = `<a onclick="navigateTo(0)"><i class="fas fa-home"></i> 根目录</a>`;
+        if (currentParentId !== 0) {
+            bc.innerHTML += ` <span>/</span> <span>当前文件夹</span>`;
+        }
+    }
+
     function loadFileList() {
-        fetch('/api/file/list')
+        fetch('/api/file/list?parentId=' + currentParentId)
             .then(res => res.json())
             .then(files => {
                 const tbody = document.getElementById('fileList');
                 tbody.innerHTML = '';
                 files.forEach(file => {
                     const row = tbody.insertRow();
-                    row.insertCell(0).innerText = file.fileName;
-                    row.insertCell(1).innerText = formatSize(file.fileSize);
+                    const isFolder = file.fileSize === 0 && !file.filePath;
+                    let nameHtml = file.fileName;
+                    if (isFolder) {
+                        nameHtml = `<i class="fas fa-folder folder-icon"></i> ` + file.fileName;
+                    } else {
+                        nameHtml = `<i class="fas fa-file"></i> ` + file.fileName;
+                    }
+                    const nameCell = row.insertCell(0);
+                    nameCell.innerHTML = nameHtml;
+                    if (isFolder) {
+                        nameCell.style.cursor = 'pointer';
+                        nameCell.onclick = () => navigateTo(file.id);
+                    }
+                    row.insertCell(1).innerText = isFolder ? '-' : formatSize(file.fileSize);
                     row.insertCell(2).innerText = parseLocalTime(file.createdAt);
                     const actions = row.insertCell(3);
+                    if (!isFolder) {
+                        const previewBtn = document.createElement('button');
+                        previewBtn.className = 'action-btn';
+                        previewBtn.innerHTML = '<i class="fas fa-eye"></i>预览';
+                        previewBtn.onclick = () => previewFile(file.id, file.fileName);
+                        actions.appendChild(previewBtn);
+                    }
                     const downloadBtn = document.createElement('button');
                     downloadBtn.className = 'action-btn';
                     downloadBtn.innerHTML = '<i class="fas fa-download"></i>下载';
                     downloadBtn.onclick = () => { window.location.href = '/api/file/download?fileId=' + file.id; };
+                    if (!isFolder) actions.appendChild(downloadBtn);
                     const versionsBtn = document.createElement('button');
                     versionsBtn.className = 'action-btn';
                     versionsBtn.innerHTML = '<i class="fas fa-code-branch"></i>版本';
                     versionsBtn.onclick = () => { openVersionModal(file.id); };
+                    if (!isFolder) actions.appendChild(versionsBtn);
                     const shareBtn = document.createElement('button');
                     shareBtn.className = 'action-btn';
                     shareBtn.innerHTML = '<i class="fas fa-share-alt"></i>分享';
                     shareBtn.onclick = () => { openShareModal(file.id); };
+                    if (!isFolder) actions.appendChild(shareBtn);
                     const deleteBtn = document.createElement('button');
                     deleteBtn.className = 'action-btn';
                     deleteBtn.innerHTML = '<i class="fas fa-trash"></i>删除';
@@ -225,12 +345,96 @@
                             .then(res => res.text())
                             .then(msg => { showToast(msg); loadFileList(); loadSpaceInfo(); });
                     };
-                    actions.appendChild(downloadBtn);
-                    actions.appendChild(versionsBtn);
-                    actions.appendChild(shareBtn);
                     actions.appendChild(deleteBtn);
                 });
             });
+    }
+
+    function showImagePreview(url) {
+        if (currentImageUrl) {
+            URL.revokeObjectURL(currentImageUrl);
+        }
+        currentImageUrl = url;
+        document.getElementById('previewImage').src = url;
+        document.getElementById('imagePreviewModal').style.display = 'block';
+    }
+
+    function closeImagePreview() {
+        document.getElementById('imagePreviewModal').style.display = 'none';
+        if (currentImageUrl) {
+            URL.revokeObjectURL(currentImageUrl);
+            currentImageUrl = null;
+        }
+        document.getElementById('previewImage').src = '';
+    }
+
+    function openInNewTab(blobUrl) {
+        window.open(blobUrl, '_blank');
+    }
+
+    function previewFile(fileId, fileName) {
+        const ext = fileName.split('.').pop().toLowerCase();
+        if (['jpg','jpeg','png','gif','bmp','webp'].includes(ext)) {
+            fetch('/api/file/preview/' + fileId)
+                .then(res => res.blob())
+                .then(blob => {
+                    const url = URL.createObjectURL(blob);
+                    showImagePreview(url);
+                });
+        } else if (ext === 'pdf') {
+            fetch('/api/file/preview/' + fileId)
+                .then(res => res.blob())
+                .then(blob => {
+                    const url = URL.createObjectURL(blob);
+                    openInNewTab(url);
+                });
+        } else if (['txt','md','java','xml','json','properties','yml','yaml'].includes(ext)) {
+            fetch('/api/file/preview/' + fileId)
+                .then(res => res.text())
+                .then(text => {
+                    const blob = new Blob([text], {type: 'text/plain'});
+                    const url = URL.createObjectURL(blob);
+                    document.getElementById('previewFrame').src = url;
+                    document.getElementById('previewModal').style.display = 'block';
+                });
+        } else {
+            showToast('不支持在线预览此格式，请下载后查看');
+        }
+    }
+
+    function previewVersion(versionId, fileName) {
+        const ext = fileName.split('.').pop().toLowerCase();
+        if (['jpg','jpeg','png','gif','bmp','webp'].includes(ext)) {
+            fetch('/api/file/version/preview/' + versionId)
+                .then(res => res.blob())
+                .then(blob => {
+                    const url = URL.createObjectURL(blob);
+                    showImagePreview(url);
+                });
+        } else if (ext === 'pdf') {
+            fetch('/api/file/version/preview/' + versionId)
+                .then(res => res.blob())
+                .then(blob => {
+                    const url = URL.createObjectURL(blob);
+                    openInNewTab(url);
+                });
+        } else if (['txt','md','java','xml','json','properties','yml','yaml'].includes(ext)) {
+            fetch('/api/file/version/preview/' + versionId)
+                .then(res => res.text())
+                .then(text => {
+                    const blob = new Blob([text], {type: 'text/plain'});
+                    const url = URL.createObjectURL(blob);
+                    document.getElementById('previewFrame').src = url;
+                    document.getElementById('previewModal').style.display = 'block';
+                });
+        } else {
+            showToast('不支持在线预览此格式，请下载后查看');
+        }
+    }
+
+    function closePreviewModal() {
+        document.getElementById('previewModal').style.display = 'none';
+        document.getElementById('previewFrame').src = '';
     }
 
     async function requestRename(originalName) {
@@ -253,7 +457,7 @@
     };
     document.getElementById('renameCancel').onclick = function() { closeRenameModal(false); };
 
-    async function uploadSingleFile(file, newFileName) {
+    async function uploadSingleFile(file, newFileName, targetParentId) {
         try {
             const spaceResp = await fetch('/api/user/space');
             const spaceData = await spaceResp.json();
@@ -263,10 +467,14 @@
             }
             const formData = new FormData();
             formData.append('file', file, newFileName);
+            formData.append('parentId', targetParentId);
             const uploadResp = await fetch('/api/file/upload', { method: 'POST', body: formData });
             const result = await uploadResp.json();
             showToast(result.message);
-            if (result.success) { await loadSpaceInfo(); return true; }
+            if (result.success) {
+                await loadSpaceInfo();
+                return true;
+            }
             return false;
         } catch (err) {
             showToast('上传失败：' + err.message);
@@ -274,19 +482,189 @@
         }
     }
 
+    function openUploadSetupModal(files) {
+        pendingFiles = files;
+        selectedTargetParentId = currentParentId;
+        selectedTargetPath = currentParentId === 0 ? '根目录' : '当前文件夹';
+        document.getElementById('uploadFileName').value = files.length === 1 ? files[0].name : '';
+        document.getElementById('selectedFolderPath').value = selectedTargetPath;
+        document.getElementById('uploadSetupModal').style.display = 'block';
+        return new Promise((resolve) => {
+            uploadSetupResolve = resolve;
+        });
+    }
+
+    function closeUploadSetupModal(confirmed, newName, targetParentId) {
+        document.getElementById('uploadSetupModal').style.display = 'none';
+        if (uploadSetupResolve) {
+            uploadSetupResolve({ confirmed, newName, targetParentId });
+            uploadSetupResolve = null;
+        }
+    }
+
+    document.getElementById('uploadSetupCancel').onclick = function() {
+        closeUploadSetupModal(false, null, null);
+    };
+
+    document.getElementById('uploadSetupConfirm').onclick = function() {
+        let newName = document.getElementById('uploadFileName').value.trim();
+        if (newName === '' && pendingFiles.length === 1) {
+            newName = pendingFiles[0].name;
+        }
+        if (newName === '') {
+            showToast('请输入文件名');
+            return;
+        }
+        closeUploadSetupModal(true, newName, selectedTargetParentId);
+    };
+
+    document.getElementById('browseFolderBtn').onclick = function() {
+        pickerCurrentParentId = 0;
+        pickerBreadcrumbStack = [{id:0, name:'根目录'}];
+        pickerSelectedFolderId = selectedTargetParentId;
+        pickerSelectedFolderName = selectedTargetPath;
+        updatePickerBreadcrumb();
+        loadPickerFolderList();
+        document.getElementById('folderPickerModal').style.display = 'block';
+    };
+
+    function updatePickerBreadcrumb() {
+        const bc = document.getElementById('pickerBreadcrumb');
+        let html = '';
+        pickerBreadcrumbStack.forEach((item, index) => {
+            if (index > 0) html += ' <span>/</span> ';
+            html += `<a onclick="pickerNavigateTo(${item.id}, ${index})">${item.name}</a>`;
+        });
+        bc.innerHTML = html;
+    }
+
+    function pickerNavigateTo(parentId, stackIndex) {
+        if (stackIndex !== undefined) {
+            pickerBreadcrumbStack = pickerBreadcrumbStack.slice(0, stackIndex + 1);
+        } else {
+            pickerBreadcrumbStack.push({id: parentId, name: '...'});
+        }
+        pickerCurrentParentId = parentId;
+        loadPickerFolderList().then(() => {
+            if (stackIndex === undefined) {
+                const currentFolder = document.querySelector(`[data-folder-id="${parentId}"]`);
+                if (currentFolder) {
+                    const name = currentFolder.querySelector('.folder-name')?.innerText || '文件夹';
+                    pickerBreadcrumbStack[pickerBreadcrumbStack.length-1].name = name;
+                    updatePickerBreadcrumb();
+                }
+            }
+        });
+    }
+
+    async function loadPickerFolderList() {
+        const resp = await fetch('/api/file/list?parentId=' + pickerCurrentParentId);
+        const files = await resp.json();
+        const folders = files.filter(f => f.fileSize === 0 && !f.filePath);
+        const container = document.getElementById('folderPickerList');
+        container.innerHTML = '';
+        if (folders.length === 0) {
+            container.innerHTML = '<div style="padding:16px; text-align:center; color:#64748b;">此文件夹下没有子文件夹</div>';
+        } else {
+            folders.forEach(folder => {
+                const div = document.createElement('div');
+                div.className = 'folder-picker-item';
+                div.setAttribute('data-folder-id', folder.id);
+                div.innerHTML = `<i class="fas fa-folder folder-icon"></i> <span class="folder-name">${folder.fileName}</span>`;
+                div.onclick = (e) => {
+                    document.querySelectorAll('.folder-picker-item').forEach(el => el.classList.remove('selected'));
+                    div.classList.add('selected');
+                    pickerSelectedFolderId = folder.id;
+                    pickerSelectedFolderName = folder.fileName;
+                };
+                div.ondblclick = () => {
+                    pickerNavigateTo(folder.id);
+                };
+                container.appendChild(div);
+                if (folder.id === pickerSelectedFolderId) {
+                    div.classList.add('selected');
+                }
+            });
+        }
+    }
+
+    function closeFolderPickerModal() {
+        document.getElementById('folderPickerModal').style.display = 'none';
+    }
+
+    document.getElementById('selectCurrentFolderBtn').onclick = function() {
+        let path = pickerBreadcrumbStack.map(item => item.name).join(' / ');
+        if (pickerSelectedFolderId === 0) {
+            path = '根目录';
+        } else {
+            path = path + ' / ' + pickerSelectedFolderName;
+        }
+        selectedTargetParentId = pickerSelectedFolderId;
+        selectedTargetPath = path;
+        document.getElementById('selectedFolderPath').value = path;
+        closeFolderPickerModal();
+    };
+
+    document.getElementById('newFolderInPickerBtn').onclick = function() {
+        const folderName = prompt('请输入新文件夹名称');
+        if (!folderName) return;
+        const formData = new FormData();
+        formData.append('folderName', folderName);
+        formData.append('parentId', pickerCurrentParentId);
+        fetch('/api/file/folder/create', { method: 'POST', body: formData })
+            .then(res => res.json())
+            .then(data => {
+                showToast(data.message);
+                if (data.success) {
+                    loadPickerFolderList();
+                }
+            });
+    };
+
     document.getElementById('uploadBtn').onclick = async () => {
         const fileInput = document.getElementById('fileInput');
         const files = Array.from(fileInput.files);
         if (files.length === 0) { showToast('请选择文件'); return; }
-        for (const file of files) {
-            try {
-                const newName = await requestRename(file.name);
-                await uploadSingleFile(file, newName);
-            } catch (e) { continue; }
+
+        let targetParentId = currentParentId;
+        let newName = files.length === 1 ? files[0].name : null;
+
+        if (files.length === 1) {
+            const result = await openUploadSetupModal(files);
+            if (!result.confirmed) {
+                fileInput.value = '';
+                return;
+            }
+            newName = result.newName;
+            targetParentId = result.targetParentId;
+            await uploadSingleFile(files[0], newName, targetParentId);
+        } else {
+            targetParentId = currentParentId;
+            for (const file of files) {
+                try {
+                    const renameResult = await requestRename(file.name);
+                    await uploadSingleFile(file, renameResult, targetParentId);
+                } catch (e) { continue; }
+            }
         }
+
         loadFileList();
         fileInput.value = '';
         loadSpaceInfo();
+    };
+
+    document.getElementById('newFolderBtn').onclick = () => {
+        const folderName = prompt('请输入文件夹名称');
+        if (!folderName) return;
+        const formData = new FormData();
+        formData.append('folderName', folderName);
+        formData.append('parentId', currentParentId);
+        fetch('/api/file/folder/create', { method: 'POST', body: formData })
+            .then(res => res.json())
+            .then(data => {
+                showToast(data.message);
+                if (data.success) loadFileList();
+            });
     };
 
     function openVersionModal(fileId) {
@@ -301,17 +679,19 @@
                     let html = '';
                     versions.forEach(v => {
                         html += `<div class="version-item">
-                            <strong>版本 ${v.versionNumber}</strong>：${v.fileName} (${formatSize(v.fileSize)})<br>
-                            <small>${parseLocalTime(v.createdAt)}</small><br>
-                            <button onclick="rollbackVersion(${fileId}, ${v.versionNumber})">回滚到此版本</button>
-                            <button onclick="deleteVersionRequest(${v.id}, ${fileId})">删除此版本</button>
-                        </div>`;
+                        <strong>版本 ${v.versionNumber}</strong>：${v.fileName} (${formatSize(v.fileSize)})<br>
+                        <small>${parseLocalTime(v.createdAt)}</small><br>
+                        <button onclick="previewVersion(${v.id}, '${v.fileName}')">预览</button>
+                        <button onclick="rollbackVersion(${fileId}, ${v.versionNumber})">回滚到此版本</button>
+                        <button onclick="deleteVersionRequest(${v.id}, ${fileId})">删除此版本</button>
+                    </div>`;
                     });
                     container.innerHTML = html;
                 }
                 document.getElementById('versionModal').style.display = 'block';
             });
     }
+
     function closeVersionModal() { document.getElementById('versionModal').style.display = 'none'; }
     function rollbackVersion(fileId, versionNumber) {
         fetch('/api/file/rollback?fileId=' + fileId + '&version=' + versionNumber, { method: 'POST' })
@@ -358,7 +738,12 @@
             .catch(err => showToast('生成分享失败：' + err));
     }
     window.onclick = function(event) {
-        if (event.target.classList.contains('modal')) event.target.style.display = 'none';
+        if (event.target.classList.contains('modal')) {
+            if (event.target.id === 'imagePreviewModal') closeImagePreview();
+            else if (event.target.id !== 'uploadSetupModal' && event.target.id !== 'folderPickerModal') {
+                event.target.style.display = 'none';
+            }
+        }
     }
     function logoutAndClose() {
         showConfirm('确定退出并关闭页面吗？', function() {
@@ -370,7 +755,6 @@
             fetch('/api/user/logout').then(() => { window.location.href = '/login'; });
         });
     }
-
     function fetchUserInfo() {
         fetch('/api/user/info')
             .then(res => {
@@ -395,7 +779,6 @@
     fetchUserInfo();
     loadSpaceInfo();
     loadFileList();
-
 </script>
 </body>
 </html>

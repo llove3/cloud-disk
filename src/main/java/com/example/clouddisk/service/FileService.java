@@ -53,35 +53,44 @@ public class FileService {
     @Transactional
     public User saveFile(Long userId, Long parentId, MultipartFile file) throws Exception {
         String md5 = getFileMd5(file);
-        String userDir = uploadDir + userId + "/";
-        Path userPath = Paths.get(userDir);
-        if (!Files.exists(userPath)) {
-            Files.createDirectories(userPath);
-        }
+        Long fileSize = file.getSize();
         String originalName = file.getOriginalFilename();
-        String baseName = originalName;
-        String extension = "";
-        int dotIndex = originalName.lastIndexOf(".");
-        if (dotIndex > 0) {
-            baseName = originalName.substring(0, dotIndex);
-            extension = originalName.substring(dotIndex);
+
+        FileInfo sameMd5File = fileMapper.findByMd5AndSize(md5, fileSize);
+        String storePath;
+        if (sameMd5File != null) {
+            storePath = sameMd5File.getFilePath();
+        } else {
+            String userDir = uploadDir + userId + "/";
+            Path userPath = Paths.get(userDir);
+            if (!Files.exists(userPath)) {
+                Files.createDirectories(userPath);
+            }
+            String baseName = originalName;
+            String extension = "";
+            int dotIndex = originalName.lastIndexOf(".");
+            if (dotIndex > 0) {
+                baseName = originalName.substring(0, dotIndex);
+                extension = originalName.substring(dotIndex);
+            }
+            String uniqueName = baseName + "_" + System.currentTimeMillis() + extension;
+            storePath = userDir + uniqueName;
+            file.transferTo(Paths.get(storePath));
         }
-        String uniqueName = baseName + "_" + System.currentTimeMillis() + extension;
-        String storePath = userDir + uniqueName;
-        file.transferTo(Paths.get(storePath));
+
         FileInfo existing = fileMapper.findByUserIdAndParentIdAndFileName(userId, parentId, originalName);
         if (existing == null) {
             FileInfo fileInfo = new FileInfo();
             fileInfo.setUserId(userId);
             fileInfo.setFileName(originalName);
-            fileInfo.setFileSize(file.getSize());
+            fileInfo.setFileSize(fileSize);
             fileInfo.setFilePath(storePath);
             fileInfo.setFileMd5(md5);
             fileInfo.setParentId(parentId);
             fileInfo.setVersion(1);
             fileInfo.setDeleted(false);
             fileMapper.insert(fileInfo);
-            userMapper.addUsedSpace(userId, file.getSize());
+            userMapper.addUsedSpace(userId, fileSize);
         } else {
             long oldSize = existing.getFileSize();
             FileVersion version = new FileVersion();
@@ -92,13 +101,13 @@ public class FileService {
             version.setFilePath(existing.getFilePath());
             version.setFileMd5(existing.getFileMd5());
             fileVersionMapper.insert(version);
-            existing.setFileSize(file.getSize());
+            existing.setFileSize(fileSize);
             existing.setFilePath(storePath);
             existing.setFileMd5(md5);
             existing.setVersion(existing.getVersion() + 1);
             fileMapper.update(existing);
             userMapper.subUsedSpace(userId, oldSize);
-            userMapper.addUsedSpace(userId, file.getSize());
+            userMapper.addUsedSpace(userId, fileSize);
         }
         return userService.getUpdatedUser(userId);
     }
@@ -133,14 +142,24 @@ public class FileService {
     public void permanentDelete(Long fileId, Long userId) throws IOException {
         FileInfo file = fileMapper.findByIdAndUserIdIncludeDeleted(fileId, userId);
         if (file != null && file.getDeleted()) {
-            Path currentPath = Paths.get(file.getFilePath());
-            Files.deleteIfExists(currentPath);
+            boolean isFolder = (file.getFileSize() == 0 && (file.getFilePath() == null || file.getFilePath().isEmpty()));
+            if (!isFolder) {
+                boolean hasOtherReference = fileMapper.countByMd5AndSizeExcludingId(file.getFileMd5(), file.getFileSize(), fileId) > 0;
+                if (!hasOtherReference) {
+                    Path currentPath = Paths.get(file.getFilePath());
+                    Files.deleteIfExists(currentPath);
+                }
+            }
+
             List<FileVersion> versions = fileVersionMapper.findByFileId(fileId);
             long totalVersionSize = 0L;
             for (FileVersion version : versions) {
-                Path versionPath = Paths.get(version.getFilePath());
-                Files.deleteIfExists(versionPath);
                 totalVersionSize += version.getFileSize();
+                boolean versionHasRef = fileVersionMapper.countByMd5ExcludingId(version.getFileMd5(), version.getId()) > 0;
+                if (!versionHasRef && version.getFilePath() != null && !version.getFilePath().isEmpty()) {
+                    Path versionPath = Paths.get(version.getFilePath());
+                    Files.deleteIfExists(versionPath);
+                }
             }
             fileVersionMapper.deleteByFileId(fileId);
             fileMapper.permanentDeleteById(fileId);
@@ -155,6 +174,14 @@ public class FileService {
             return null;
         }
         return fileVersionMapper.findByFileId(fileId);
+    }
+
+    public FileVersion getVersionById(Long versionId, Long userId) {
+        FileVersion version = fileVersionMapper.findById(versionId);
+        if (version == null) return null;
+        FileInfo file = fileMapper.findById(version.getFileId());
+        if (file == null || !file.getUserId().equals(userId)) return null;
+        return version;
     }
 
     @Transactional
@@ -196,9 +223,29 @@ public class FileService {
         if (version == null || !version.getFileId().equals(fileId)) {
             throw new RuntimeException("版本不存在");
         }
-        Path versionPath = Paths.get(version.getFilePath());
-        Files.deleteIfExists(versionPath);
+        boolean versionHasRef = fileVersionMapper.countByMd5ExcludingId(version.getFileMd5(), versionId) > 0;
+        if (!versionHasRef && version.getFilePath() != null && !version.getFilePath().isEmpty()) {
+            Path versionPath = Paths.get(version.getFilePath());
+            Files.deleteIfExists(versionPath);
+        }
         fileVersionMapper.deleteById(versionId);
         userMapper.subUsedSpace(userId, version.getFileSize());
+    }
+
+    public void createFolder(Long userId, Long parentId, String folderName) {
+        FileInfo existing = fileMapper.findByUserIdAndParentIdAndFileName(userId, parentId, folderName);
+        if (existing != null) {
+            throw new RuntimeException("文件夹已存在");
+        }
+        FileInfo folder = new FileInfo();
+        folder.setUserId(userId);
+        folder.setFileName(folderName);
+        folder.setFileSize(0L);
+        folder.setFilePath("");
+        folder.setFileMd5("");
+        folder.setParentId(parentId);
+        folder.setVersion(1);
+        folder.setDeleted(false);
+        fileMapper.insert(folder);
     }
 }

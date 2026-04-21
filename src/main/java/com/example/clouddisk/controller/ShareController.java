@@ -19,6 +19,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.List;
 
 @RestController
 public class ShareController {
@@ -41,7 +42,28 @@ public class ShareController {
         return shareService.createShare(user.getId(), fileId, password, expireDays);
     }
 
+    @GetMapping("/api/share/list")
+    public List<Share> listShares(HttpSession session) {
+        User user = (User) session.getAttribute("user");
+        if (user == null) {
+            throw new RuntimeException("请先登录");
+        }
+        return shareService.listShares(user.getId());
+    }
 
+    @PostMapping("/api/share/delete")
+    public String deleteShare(@RequestParam Long shareId, HttpSession session) {
+        User user = (User) session.getAttribute("user");
+        if (user == null) {
+            return "请先登录";
+        }
+        try {
+            shareService.deleteShare(shareId, user.getId());
+            return "删除成功";
+        } catch (Exception e) {
+            return e.getMessage();
+        }
+    }
 
     @PostMapping("/s/{code}/verify")
     @ResponseBody

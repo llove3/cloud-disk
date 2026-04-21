@@ -15,13 +15,14 @@ public class FileInfo {
     private Integer version;
     private Boolean deleted;
 
-    // getter 和 setter
-
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
     private Date createdAt;
 
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
     private Date deletedAt;
+
+    private String location;
+
     public Date getDeletedAt() { return deletedAt; }
     public void setDeletedAt(Date deletedAt) { this.deletedAt = deletedAt; }
     public Long getId() { return id; }
@@ -44,4 +45,6 @@ public class FileInfo {
     public void setDeleted(Boolean deleted) { this.deleted = deleted; }
     public Date getCreatedAt() { return createdAt; }
     public void setCreatedAt(Date createdAt) { this.createdAt = createdAt; }
+    public String getLocation() { return location; }
+    public void setLocation(String location) { this.location = location; }
 }

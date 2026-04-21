@@ -50,4 +50,10 @@ public interface FileMapper {
 
     @Select("SELECT COUNT(*) FROM file WHERE file_md5 = #{md5} AND file_size = #{fileSize} AND id != #{id}")
     int countByMd5AndSizeExcludingId(@Param("md5") String md5, @Param("fileSize") Long fileSize, @Param("id") Long id);
+
+    @Select("SELECT * FROM file WHERE user_id = #{userId} AND deleted = FALSE AND file_size > 0")
+    List<FileInfo> findAllNonFolderFilesByUserId(@Param("userId") Long userId);
+
+    @Select("SELECT * FROM file WHERE user_id = #{userId} AND deleted = FALSE AND file_size > 0 AND file_name LIKE CONCAT('%', #{keyword}, '%')")
+    List<FileInfo> searchByName(@Param("userId") Long userId, @Param("keyword") String keyword);
 }

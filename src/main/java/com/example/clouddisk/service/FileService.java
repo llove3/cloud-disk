@@ -17,8 +17,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.MessageDigest;
-import java.util.Base64;
-import java.util.List;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 public class FileService {
@@ -37,6 +37,16 @@ public class FileService {
 
     @Value("${file.upload-dir}")
     private String uploadDir;
+
+    private static final Map<String, List<String>> CATEGORY_EXTENSIONS = new HashMap<>();
+
+    static {
+        CATEGORY_EXTENSIONS.put("image", Arrays.asList("jpg", "jpeg", "png", "gif", "bmp", "webp", "svg"));
+        CATEGORY_EXTENSIONS.put("document", Arrays.asList("pdf", "doc", "docx", "xls", "xlsx", "ppt", "pptx", "txt", "md"));
+        CATEGORY_EXTENSIONS.put("video", Arrays.asList("mp4", "avi", "mov", "wmv", "flv", "mkv"));
+        CATEGORY_EXTENSIONS.put("audio", Arrays.asList("mp3", "wav", "flac", "aac", "ogg"));
+        CATEGORY_EXTENSIONS.put("archive", Arrays.asList("zip", "rar", "7z", "tar", "gz"));
+    }
 
     private String getFileMd5(MultipartFile file) throws Exception {
         MessageDigest md = MessageDigest.getInstance("MD5");
@@ -113,7 +123,67 @@ public class FileService {
     }
 
     public List<FileInfo> listFiles(Long userId, Long parentId) {
-        return fileMapper.findByUserIdAndParentId(userId, parentId);
+        return listFiles(userId, parentId, null);
+    }
+
+    public List<FileInfo> listFiles(Long userId, Long parentId, String category) {
+        List<FileInfo> files = fileMapper.findByUserIdAndParentId(userId, parentId);
+        if (category == null || category.isEmpty()) {
+            return files;
+        }
+        return files.stream()
+                .filter(file -> file.getFileSize() > 0 && matchesCategory(file.getFileName(), category))
+                .collect(Collectors.toList());
+    }
+
+    private boolean matchesCategory(String fileName, String category) {
+        if (fileName == null) return false;
+        int dotIndex = fileName.lastIndexOf(".");
+        if (dotIndex == -1) return false;
+        String ext = fileName.substring(dotIndex + 1).toLowerCase();
+        List<String> exts = CATEGORY_EXTENSIONS.get(category);
+        if (exts == null) return false;
+        return exts.contains(ext);
+    }
+
+    public List<FileInfo> getFilesByCategory(Long userId, String category) {
+        List<FileInfo> allNonFolderFiles = fileMapper.findAllNonFolderFilesByUserId(userId);
+        List<FileInfo> filtered = allNonFolderFiles.stream()
+                .filter(file -> matchesCategory(file.getFileName(), category))
+                .collect(Collectors.toList());
+        for (FileInfo file : filtered) {
+            file.setLocation(buildLocationPath(file.getParentId()));
+        }
+        return filtered;
+    }
+
+    public List<FileInfo> searchFiles(Long userId, String keyword, String category) {
+        List<FileInfo> files = fileMapper.searchByName(userId, keyword);
+        if (category != null && !category.isEmpty()) {
+            files = files.stream()
+                    .filter(file -> matchesCategory(file.getFileName(), category))
+                    .collect(Collectors.toList());
+        }
+        for (FileInfo file : files) {
+            file.setLocation(buildLocationPath(file.getParentId()));
+        }
+        return files;
+    }
+
+    private String buildLocationPath(Long parentId) {
+        if (parentId == 0) {
+            return "根目录";
+        }
+        List<String> names = new ArrayList<>();
+        Long currentParentId = parentId;
+        while (currentParentId != 0) {
+            FileInfo parent = fileMapper.findById(currentParentId);
+            if (parent == null) break;
+            names.add(0, parent.getFileName());
+            currentParentId = parent.getParentId();
+        }
+        names.add(0, "根目录");
+        return String.join(" / ", names);
     }
 
     public FileInfo getFile(Long fileId, Long userId) {

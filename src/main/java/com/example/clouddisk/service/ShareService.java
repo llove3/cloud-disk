@@ -154,4 +154,21 @@ public class ShareService {
             throw new RuntimeException("无权删除此分享");
         }
     }
+
+    @Transactional
+    public void updateShare(Long shareId, Long userId, String password, Integer expireDays) {
+        Share share = shareMapper.findById(shareId);
+        if (share == null || !share.getUserId().equals(userId)) {
+            throw new RuntimeException("无权修改此分享");
+        }
+        if (password != null) {
+            share.setPassword(password.isEmpty() ? null : password);
+        }
+        if (expireDays != null && expireDays > 0) {
+            share.setExpireTime(new Date(System.currentTimeMillis() + expireDays * 24L * 60 * 60 * 1000));
+        } else if (expireDays != null && expireDays == 0) {
+            share.setExpireTime(null);
+        }
+        shareMapper.update(share);
+    }
 }

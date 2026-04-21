@@ -10,20 +10,41 @@
         body { font-family: 'Inter', sans-serif; background: #f1f5f9; color: #1e293b; padding: 24px 32px; min-height: 100vh; }
         .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 28px; }
         .header h2 { font-size: 28px; font-weight: 600; color: #0f172a; }
-        .user-info { display: flex; align-items: center; gap: 16px; background: white; padding: 8px 16px; border-radius: 40px; }
-        .user-info a { color: #3b82f6; text-decoration: none; }
-        .avatar-icon { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; }
+        .user-info { display: flex; align-items: center; gap: 16px; background: white; padding: 8px 16px; border-radius: 40px; box-shadow: 0 2px 6px rgba(0,0,0,0.03); }
+        .user-info a { color: #3b82f6; text-decoration: none; font-weight: 500; }
+        .avatar-icon { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; border: 1px solid #e2e8f0; }
         .nav-link { margin-bottom: 20px; }
-        .nav-link a { color: #3b82f6; text-decoration: none; }
-        .table-container { background: white; border-radius: 24px; padding: 8px 0; box-shadow: 0 8px 24px rgba(0,0,0,0.04); overflow-x: auto; }
+        .nav-link a { color: #3b82f6; text-decoration: none; font-weight: 500; }
+        .section-title { font-size: 20px; font-weight: 600; margin: 24px 0 12px; color: #1e293b; display: flex; align-items: center; gap: 12px; }
+        .section-title i { color: #ef4444; }
+        .batch-actions { display: flex; gap: 8px; margin-bottom: 16px; }
+        .batch-actions button { background: #f1f5f9; border: 1px solid #e2e8f0; padding: 8px 16px; border-radius: 30px; font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: all 0.15s; }
+        .batch-actions button:hover { background: #e2e8f0; }
+        .batch-actions button.danger:hover { background: #fee2e2; border-color: #ef4444; color: #b91c1c; }
+        .table-container { background: white; border-radius: 24px; padding: 8px 0; box-shadow: 0 8px 24px rgba(0,0,0,0.04); border: 1px solid #eef2f6; overflow-x: auto; margin-bottom: 24px; }
         table { width: 100%; border-collapse: collapse; }
-        th { text-align: left; padding: 18px 20px; background: #f8fafc; font-weight: 600; }
-        td { padding: 16px 20px; border-bottom: 1px solid #f1f5f9; }
-        .action-btn { background: none; border: 1px solid #e2e8f0; padding: 6px 12px; border-radius: 20px; cursor: pointer; }
-        .action-btn:hover { background: #3b82f6; color: white; }
-        #toast { visibility: hidden; min-width: 280px; background: #1e293b; color: white; text-align: center; border-radius: 60px; padding: 14px 24px; position: fixed; left: 50%; bottom: 30px; transform: translateX(-50%); z-index: 1000; }
+        th { text-align: left; padding: 18px 20px; background: #f8fafc; font-weight: 600; font-size: 14px; color: #475569; border-bottom: 1px solid #e2e8f0; }
+        td { padding: 16px 20px; border-bottom: 1px solid #f1f5f9; color: #334155; }
+        .checkbox-col { width: 40px; text-align: center; }
+        .action-btn { background: none; border: 1px solid #e2e8f0; padding: 6px 12px; border-radius: 20px; font-size: 13px; font-weight: 500; color: #475569; cursor: pointer; transition: all 0.15s; margin-right: 6px; }
+        .action-btn:hover { background: #3b82f6; border-color: #3b82f6; color: white; }
+        .expired-tag { background: #fee2e2; color: #b91c1c; padding: 2px 10px; border-radius: 20px; font-size: 12px; font-weight: 500; }
+        .modal { display: none; position: fixed; z-index: 999; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.4); }
+        .modal-content { background: white; margin: 5% auto; padding: 28px; border-radius: 28px; width: 480px; max-width: 90%; box-shadow: 0 30px 60px rgba(0,0,0,0.12); }
+        .modal-content h3 { font-size: 22px; margin-bottom: 20px; color: #0f172a; }
+        .modal-content input { width: 100%; padding: 12px 16px; border: 2px solid #e2e8f0; border-radius: 12px; margin-bottom: 16px; font-size: 14px; }
+        .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 8px; }
+        .modal-actions button { padding: 10px 20px; border-radius: 30px; border: none; font-weight: 600; cursor: pointer; }
+        .confirm-dialog { background: white; padding: 32px; border-radius: 28px; width: 360px; margin: 15% auto; text-align: center; }
+        .confirm-dialog button { padding: 10px 28px; margin: 8px; border-radius: 40px; border: none; font-weight: 600; cursor: pointer; }
+        #confirmYes { background: #3b82f6; color: white; }
+        #confirmNo { background: #f1f5f9; color: #1e293b; }
+        .close { font-size: 24px; color: #94a3b8; float: right; cursor: pointer; }
+        .close:hover { color: #0f172a; }
+        #toast { visibility: hidden; min-width: 280px; background: #1e293b; color: white; text-align: center; border-radius: 60px; padding: 14px 24px; position: fixed; left: 50%; bottom: 30px; transform: translateX(-50%); z-index: 1000; font-weight: 500; box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
         #toast.show { visibility: visible; animation: toastFade 3s; }
         @keyframes toastFade { 0% { opacity: 0; bottom: 10px; } 10% { opacity: 1; bottom: 30px; } 90% { opacity: 1; bottom: 30px; } 100% { opacity: 0; bottom: 10px; } }
+        .empty-row td { padding: 40px; text-align: center; color: #94a3b8; }
     </style>
 </head>
 <body>
@@ -31,70 +52,364 @@
     <h2><i class="fas fa-share-alt" style="color:#3b82f6;"></i> 我的分享</h2>
     <div class="user-info">
         <a href="/profile"><img id="headerAvatar" class="avatar-icon" src="/images/default.png" alt="头像"></a>
-        <span th:text="${session.user.username}"></span>
+        <span id="headerUsername" th:text="${session.user?.username}"></span>
         <a href="/files"><i class="fas fa-cloud"></i> 返回网盘</a>
-        <a href="/api/user/logout">退出</a>
+        <a href="/api/user/logout"><i class="fas fa-sign-out-alt"></i> 退出</a>
     </div>
 </div>
 <div class="nav-link"><a href="/files"><i class="fas fa-arrow-left"></i> 返回文件列表</a></div>
+
+<!-- 有效分享区域 -->
+<div class="section-title"><i class="fas fa-link"></i> 有效分享</div>
+<div class="batch-actions">
+    <button id="toggleSelectAllActiveBtn"><i class="far fa-square"></i> 全选</button>
+    <button id="batchDeleteActiveBtn" class="danger"><i class="fas fa-trash"></i> 批量删除</button>
+</div>
 <div class="table-container">
-    <table>
-        <thead><tr><th>文件名</th><th>分享码</th><th>提取码</th><th>有效期</th><th>创建时间</th><th>操作</th></tr></thead>
-        <tbody id="shareList"></tbody>
+    <table id="activeShareTable">
+        <thead>
+        <tr>
+            <th class="checkbox-col"><input type="checkbox" id="selectAllActiveCheckbox"></th>
+            <th>文件名</th>
+            <th>分享码</th>
+            <th>提取码</th>
+            <th>访问次数</th>
+            <th>有效期</th>
+            <th>创建时间</th>
+            <th>操作</th>
+        </tr>
+        </thead>
+        <tbody id="activeShareList"></tbody>
     </table>
 </div>
+
+<!-- 已失效分享区域 -->
+<div class="section-title"><i class="fas fa-clock"></i> 已失效分享</div>
+<div class="batch-actions">
+    <button id="toggleSelectAllExpiredBtn"><i class="far fa-square"></i> 全选</button>
+    <button id="batchDeleteExpiredBtn" class="danger"><i class="fas fa-trash"></i> 批量删除</button>
+    <button id="clearAllExpiredBtn" style="margin-left:auto; background:#fee2e2; border-color:#ef4444; color:#b91c1c;"><i class="fas fa-broom"></i> 一键清空失效链接</button>
+</div>
+<div class="table-container">
+    <table id="expiredShareTable">
+        <thead>
+        <tr>
+            <th class="checkbox-col"><input type="checkbox" id="selectAllExpiredCheckbox"></th>
+            <th>文件名</th>
+            <th>分享码</th>
+            <th>提取码</th>
+            <th>访问次数</th>
+            <th>有效期</th>
+            <th>创建时间</th>
+            <th>操作</th>
+        </tr>
+        </thead>
+        <tbody id="expiredShareList"></tbody>
+    </table>
+</div>
+
+<!-- 编辑分享模态框 -->
+<div id="editShareModal" class="modal">
+    <div class="modal-content">
+        <span class="close" onclick="closeEditModal()">&times;</span>
+        <h3>编辑分享</h3>
+        <label>提取码（留空则无密码）</label>
+        <input type="text" id="editSharePassword" placeholder="留空则无密码">
+        <label>有效期天数（留空则永久）</label>
+        <input type="number" id="editShareExpireDays" min="1" placeholder="留空则永久">
+        <div class="modal-actions">
+            <button onclick="closeEditModal()" style="background:#f1f5f9;">取消</button>
+            <button onclick="submitEditShare()" style="background:#3b82f6; color:white;">保存</button>
+        </div>
+    </div>
+</div>
+
+<!-- 确认对话框 -->
+<div id="confirmModal" class="modal">
+    <div class="confirm-dialog">
+        <p id="confirmMessage">确定要执行此操作吗？</p>
+        <button id="confirmYes">确定</button>
+        <button id="confirmNo">取消</button>
+    </div>
+</div>
+
 <div id="toast"></div>
+
 <script>
+    let activeShares = [];
+    let expiredShares = [];
+    let selectedActiveIds = new Set();
+    let selectedExpiredIds = new Set();
+    let isAllActiveSelected = false;
+    let isAllExpiredSelected = false;
+    let confirmCallback = null;
+    let editingShareId = null;
+
     function showToast(msg) {
         const toast = document.getElementById('toast');
         toast.innerText = msg;
         toast.className = 'show';
         setTimeout(() => { toast.className = toast.className.replace('show', ''); }, 3000);
     }
+
+    function showConfirm(message, onConfirm) {
+        document.getElementById('confirmMessage').innerText = message;
+        document.getElementById('confirmModal').style.display = 'block';
+        confirmCallback = onConfirm;
+    }
+
+    function closeConfirm() {
+        document.getElementById('confirmModal').style.display = 'none';
+        confirmCallback = null;
+    }
+
+    document.getElementById('confirmYes').onclick = function() { if (confirmCallback) confirmCallback(); closeConfirm(); };
+    document.getElementById('confirmNo').onclick = closeConfirm;
+
     function parseLocalTime(str) {
         if (!str) return '永久';
         return new Date(str).toLocaleString();
     }
+
+    function isExpired(expireTime) {
+        if (!expireTime) return false;
+        return new Date(expireTime) < new Date();
+    }
+
     function loadShares() {
         fetch('/api/share/list')
             .then(res => res.json())
             .then(shares => {
-                const tbody = document.getElementById('shareList');
-                tbody.innerHTML = '';
-                shares.forEach(s => {
-                    const row = tbody.insertRow();
-                    row.insertCell(0).innerText = s.fileName || '未知文件';
-                    row.insertCell(1).innerHTML = `<code>${s.shareCode}</code>`;
-                    row.insertCell(2).innerText = s.password || '无';
-                    row.insertCell(3).innerText = s.expireTime ? parseLocalTime(s.expireTime) : '永久';
-                    row.insertCell(4).innerText = parseLocalTime(s.createdAt);
-                    const actions = row.insertCell(5);
-                    const copyBtn = document.createElement('button');
-                    copyBtn.className = 'action-btn';
-                    copyBtn.innerHTML = '<i class="fas fa-copy"></i> 复制链接';
-                    copyBtn.onclick = () => {
-                        navigator.clipboard.writeText(window.location.origin + '/s/' + s.shareCode);
-                        showToast('链接已复制');
-                    };
-                    const delBtn = document.createElement('button');
-                    delBtn.className = 'action-btn';
-                    delBtn.innerHTML = '<i class="fas fa-trash"></i> 删除';
-                    delBtn.onclick = () => {
-                        if (confirm('确定删除该分享吗？')) {
-                            fetch('/api/share/delete?shareId=' + s.id, { method: 'POST' })
-                                .then(res => res.text())
-                                .then(msg => { showToast(msg); loadShares(); });
-                        }
-                    };
-                    actions.appendChild(copyBtn);
-                    actions.appendChild(delBtn);
-                });
+                activeShares = shares.filter(s => !isExpired(s.expireTime));
+                expiredShares = shares.filter(s => isExpired(s.expireTime));
+                renderActiveShares();
+                renderExpiredShares();
             });
     }
-    loadShares();
+
+    function renderActiveShares() {
+        const tbody = document.getElementById('activeShareList');
+        tbody.innerHTML = '';
+        selectedActiveIds.clear();
+        updateSelectAllButton('active');
+        if (activeShares.length === 0) {
+            const row = tbody.insertRow();
+            const cell = row.insertCell(0);
+            cell.colSpan = 8;
+            cell.className = 'empty-row';
+            cell.innerText = '暂无有效分享';
+            return;
+        }
+        activeShares.forEach(share => {
+            appendShareRow(tbody, share, 'active');
+        });
+    }
+
+    function renderExpiredShares() {
+        const tbody = document.getElementById('expiredShareList');
+        tbody.innerHTML = '';
+        selectedExpiredIds.clear();
+        updateSelectAllButton('expired');
+        if (expiredShares.length === 0) {
+            const row = tbody.insertRow();
+            const cell = row.insertCell(0);
+            cell.colSpan = 8;
+            cell.className = 'empty-row';
+            cell.innerText = '暂无失效分享';
+            return;
+        }
+        expiredShares.forEach(share => {
+            appendShareRow(tbody, share, 'expired');
+        });
+    }
+
+    function appendShareRow(tbody, share, type) {
+        const row = tbody.insertRow();
+        const checkboxCell = row.insertCell(0);
+        const cb = document.createElement('input');
+        cb.type = 'checkbox';
+        cb.className = `share-checkbox-${type}`;
+        cb.dataset.id = share.id;
+        cb.onchange = function() {
+            const set = type === 'active' ? selectedActiveIds : selectedExpiredIds;
+            if (cb.checked) set.add(share.id); else set.delete(share.id);
+            updateSelectAllButton(type);
+        };
+        checkboxCell.appendChild(cb);
+
+        row.insertCell(1).innerText = share.fileName || '未知文件';
+        row.insertCell(2).innerHTML = `<code>${share.shareCode}</code>`;
+        row.insertCell(3).innerText = share.password || '无';
+        row.insertCell(4).innerText = share.visitCount || 0;
+        row.insertCell(5).innerText = share.expireTime ? parseLocalTime(share.expireTime) : '永久';
+        row.insertCell(6).innerText = parseLocalTime(share.createdAt);
+
+        const actions = row.insertCell(7);
+        const copyBtn = document.createElement('button');
+        copyBtn.className = 'action-btn';
+        copyBtn.innerHTML = '<i class="fas fa-copy"></i> 复制';
+        copyBtn.onclick = () => {
+            navigator.clipboard.writeText(window.location.origin + '/s/' + share.shareCode);
+            showToast('链接已复制');
+        };
+        actions.appendChild(copyBtn);
+
+        const editBtn = document.createElement('button');
+        editBtn.className = 'action-btn';
+        editBtn.innerHTML = '<i class="fas fa-edit"></i> 编辑';
+        editBtn.onclick = () => openEditModal(share);
+        actions.appendChild(editBtn);
+
+        const delBtn = document.createElement('button');
+        delBtn.className = 'action-btn';
+        delBtn.innerHTML = '<i class="fas fa-trash"></i> 删除';
+        delBtn.onclick = () => {
+            showConfirm('确定删除该分享吗？', () => {
+                fetch('/api/share/delete?shareId=' + share.id, { method: 'POST' })
+                    .then(res => res.text())
+                    .then(msg => { showToast(msg); loadShares(); });
+            });
+        };
+        actions.appendChild(delBtn);
+    }
+
+    function updateSelectAllButton(type) {
+        const checkboxes = document.querySelectorAll(`.share-checkbox-${type}`);
+        const allChecked = checkboxes.length > 0 && Array.from(checkboxes).every(cb => cb.checked);
+        if (type === 'active') {
+            isAllActiveSelected = allChecked;
+            const btn = document.getElementById('toggleSelectAllActiveBtn');
+            btn.innerHTML = isAllActiveSelected ? '<i class="fas fa-check-square"></i> 取消全选' : '<i class="far fa-square"></i> 全选';
+            document.getElementById('selectAllActiveCheckbox').checked = allChecked;
+        } else {
+            isAllExpiredSelected = allChecked;
+            const btn = document.getElementById('toggleSelectAllExpiredBtn');
+            btn.innerHTML = isAllExpiredSelected ? '<i class="fas fa-check-square"></i> 取消全选' : '<i class="far fa-square"></i> 全选';
+            document.getElementById('selectAllExpiredCheckbox').checked = allChecked;
+        }
+    }
+
+    // 全选切换逻辑
+    document.getElementById('selectAllActiveCheckbox').onchange = function(e) {
+        const checked = e.target.checked;
+        document.querySelectorAll('.share-checkbox-active').forEach(cb => {
+            cb.checked = checked;
+            if (checked) selectedActiveIds.add(parseInt(cb.dataset.id));
+            else selectedActiveIds.delete(parseInt(cb.dataset.id));
+        });
+        updateSelectAllButton('active');
+    };
+
+    document.getElementById('selectAllExpiredCheckbox').onchange = function(e) {
+        const checked = e.target.checked;
+        document.querySelectorAll('.share-checkbox-expired').forEach(cb => {
+            cb.checked = checked;
+            if (checked) selectedExpiredIds.add(parseInt(cb.dataset.id));
+            else selectedExpiredIds.delete(parseInt(cb.dataset.id));
+        });
+        updateSelectAllButton('expired');
+    };
+
+    document.getElementById('toggleSelectAllActiveBtn').onclick = function() {
+        const newState = !isAllActiveSelected;
+        document.querySelectorAll('.share-checkbox-active').forEach(cb => {
+            cb.checked = newState;
+            if (newState) selectedActiveIds.add(parseInt(cb.dataset.id));
+            else selectedActiveIds.delete(parseInt(cb.dataset.id));
+        });
+        updateSelectAllButton('active');
+    };
+
+    document.getElementById('toggleSelectAllExpiredBtn').onclick = function() {
+        const newState = !isAllExpiredSelected;
+        document.querySelectorAll('.share-checkbox-expired').forEach(cb => {
+            cb.checked = newState;
+            if (newState) selectedExpiredIds.add(parseInt(cb.dataset.id));
+            else selectedExpiredIds.delete(parseInt(cb.dataset.id));
+        });
+        updateSelectAllButton('expired');
+    };
+
+    function batchDelete(type) {
+        const ids = type === 'active' ? selectedActiveIds : selectedExpiredIds;
+        if (ids.size === 0) {
+            showToast('请至少选择一个分享');
+            return;
+        }
+        showConfirm(`确定删除选中的 ${ids.size} 个分享吗？`, () => {
+            const promises = Array.from(ids).map(id =>
+                fetch('/api/share/delete?shareId=' + id, { method: 'POST' })
+            );
+            Promise.all(promises).then(() => {
+                showToast('批量删除成功');
+                loadShares();
+            });
+        });
+    }
+
+    document.getElementById('batchDeleteActiveBtn').onclick = () => batchDelete('active');
+    document.getElementById('batchDeleteExpiredBtn').onclick = () => batchDelete('expired');
+
+    document.getElementById('clearAllExpiredBtn').onclick = function() {
+        if (expiredShares.length === 0) {
+            showToast('没有失效分享');
+            return;
+        }
+        showConfirm(`确定清空所有 ${expiredShares.length} 条失效分享吗？`, () => {
+            const promises = expiredShares.map(s => fetch('/api/share/delete?shareId=' + s.id, { method: 'POST' }));
+            Promise.all(promises).then(() => {
+                showToast('已清空失效分享');
+                loadShares();
+            });
+        });
+    };
+
+    function openEditModal(share) {
+        editingShareId = share.id;
+        document.getElementById('editSharePassword').value = share.password || '';
+        document.getElementById('editShareExpireDays').value = '';
+        document.getElementById('editShareModal').style.display = 'block';
+    }
+
+    function closeEditModal() {
+        document.getElementById('editShareModal').style.display = 'none';
+        editingShareId = null;
+    }
+
+    function submitEditShare() {
+        if (!editingShareId) return;
+        const password = document.getElementById('editSharePassword').value.trim();
+        const expireDays = document.getElementById('editShareExpireDays').value;
+        const params = new URLSearchParams();
+        params.append('shareId', editingShareId);
+        if (password) params.append('password', password);
+        if (expireDays) params.append('expireDays', expireDays);
+        fetch('/api/share/update', { method: 'POST', body: params })
+            .then(res => res.text())
+            .then(msg => {
+                showToast(msg);
+                if (msg.includes('成功')) {
+                    closeEditModal();
+                    loadShares();
+                }
+            });
+    }
+
+    window.onclick = function(event) {
+        if (event.target.classList.contains('modal')) {
+            if (event.target.id === 'confirmModal') closeConfirm();
+            else if (event.target.id === 'editShareModal') closeEditModal();
+        }
+    }
+
     fetch('/api/user/info').then(res => res.json()).then(user => {
-        if (user && user.avatar) document.getElementById('headerAvatar').src = user.avatar;
+        if (user) {
+            document.getElementById('headerAvatar').src = user.avatar || '/images/default.png';
+            document.getElementById('headerUsername').innerText = user.username || '';
+        }
     });
+
+    loadShares();
 </script>
 </body>
 </html>

@@ -291,4 +291,27 @@ public class FileController {
                 .contentType(MediaType.parseMediaType(mimeType))
                 .body(data);
     }
+
+    @PostMapping("/rename")
+    public Map<String, Object> rename(@RequestParam Long fileId,
+                                      @RequestParam String newName,
+                                      HttpSession session) {
+        Map<String, Object> result = new HashMap<>();
+        User user = (User) session.getAttribute("user");
+        if (user == null) {
+            result.put("success", false);
+            result.put("message", "请先登录");
+            return result;
+        }
+        try {
+            fileService.renameFile(fileId, user.getId(), newName);
+            result.put("success", true);
+            result.put("message", "重命名成功");
+        } catch (Exception e) {
+            result.put("success", false);
+            result.put("message", e.getMessage());
+        }
+        return result;
+    }
+
 }

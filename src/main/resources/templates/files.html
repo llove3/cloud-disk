@@ -130,8 +130,7 @@
 </div>
 
 <div class="batch-actions">
-    <button id="selectAllBtn"><i class="far fa-check-square"></i> 全选</button>
-    <button id="deselectAllBtn"><i class="far fa-square"></i> 取消全选</button>
+    <button id="toggleSelectAllBtn"><i class="far fa-square"></i> 全选</button>
     <button id="batchDeleteBtn" class="danger"><i class="fas fa-trash-alt"></i> 批量删除</button>
     <button id="batchDownloadBtn"><i class="fas fa-download"></i> 分别下载</button>
     <button id="batchPackageShareBtn"><i class="fas fa-box"></i> 打包分享</button>
@@ -170,49 +169,42 @@
 
 <div id="toast"></div>
 
-<div id="uploadSetupModal" class="modal">
-    <div class="modal-content" style="width: 480px;">
-        <span class="close" onclick="closeUploadSetupModal()">&times;</span>
-        <h3>上传文件设置</h3>
-        <div style="margin-bottom: 16px;">
-            <label style="display: block; margin-bottom: 6px; font-weight: 500;">文件名</label>
-            <input type="text" id="uploadFileName" style="width: 100%; padding: 12px 16px; border: 2px solid #e2e8f0; border-radius: 12px; font-size: 14px;">
-        </div>
-        <div style="margin-bottom: 16px;">
-            <label style="display: block; margin-bottom: 6px; font-weight: 500;">目标文件夹</label>
-            <div class="folder-path-row">
-                <input type="text" id="selectedFolderPath" readonly style="flex: 1; padding: 12px 16px; border: 2px solid #e2e8f0; border-radius: 12px; background: #f8fafc;">
-                <button type="button" id="browseFolderBtn" style="padding: 12px 16px; background: #f1f5f9; border: 2px solid #e2e8f0; border-radius: 12px; cursor: pointer; white-space: nowrap;"><i class="fas fa-folder-open"></i> 浏览</button>
-            </div>
-        </div>
+<!-- 新建文件夹模态框 -->
+<div id="newFolderModal" class="modal">
+    <div class="modal-content" style="width: 400px;">
+        <span class="close" onclick="closeNewFolderModal()">&times;</span>
+        <h3>新建文件夹</h3>
+        <input type="text" id="newFolderNameInput" placeholder="请输入文件夹名称" style="width:100%; padding:12px 16px; border:2px solid #e2e8f0; border-radius:12px; margin-bottom:20px;">
         <div style="text-align: right;">
-            <button id="uploadSetupCancel" style="padding: 10px 20px; border-radius: 30px; border: none; font-weight: 600; cursor: pointer; background: #f1f5f9; margin-right: 10px;">取消</button>
-            <button id="uploadSetupConfirm" style="padding: 10px 20px; border-radius: 30px; border: none; font-weight: 600; cursor: pointer; background: #3b82f6; color: white;">开始上传</button>
+            <button id="newFolderCancel" style="padding:10px 20px; border-radius:30px; border:none; background:#f1f5f9; margin-right:10px; cursor:pointer;">取消</button>
+            <button id="newFolderConfirm" style="padding:10px 20px; border-radius:30px; border:none; background:#3b82f6; color:white; cursor:pointer;">创建</button>
         </div>
     </div>
 </div>
 
-<div id="folderPickerModal" class="modal">
+<!-- 目标文件夹选择模态框（用于上传前） -->
+<div id="uploadFolderPickerModal" class="modal">
     <div class="modal-content" style="width: 550px;">
-        <span class="close" onclick="closeFolderPickerModal()">&times;</span>
-        <h3>选择文件夹</h3>
-        <div class="breadcrumb" id="pickerBreadcrumb" style="margin-bottom: 12px;">
-            <a onclick="pickerNavigateTo(0)"><i class="fas fa-home"></i> 根目录</a>
+        <span class="close" onclick="closeUploadFolderPickerModal()">&times;</span>
+        <h3>选择上传目标文件夹</h3>
+        <div class="breadcrumb" id="uploadPickerBreadcrumb" style="margin-bottom: 12px;">
+            <a onclick="uploadPickerNavigateTo(0)"><i class="fas fa-home"></i> 根目录</a>
         </div>
-        <div class="folder-picker-list" id="folderPickerList"></div>
+        <div class="folder-picker-list" id="uploadFolderPickerList"></div>
         <div class="picker-actions">
-            <button id="newFolderInPickerBtn" style="padding: 8px 16px; background: #8b5cf6; color: white; border: none; border-radius: 30px; font-weight: 500; cursor: pointer;"><i class="fas fa-folder-plus"></i> 新建文件夹</button>
+            <button id="newFolderInUploadPickerBtn" style="padding: 8px 16px; background: #8b5cf6; color: white; border: none; border-radius: 30px; font-weight: 500; cursor: pointer;"><i class="fas fa-folder-plus"></i> 新建文件夹</button>
             <div style="flex:1;"></div>
-            <button id="selectCurrentFolderBtn" style="padding: 10px 24px; background: #3b82f6; color: white; border: none; border-radius: 30px; font-weight: 600; cursor: pointer;">选择此文件夹</button>
+            <button id="selectUploadFolderBtn" style="padding: 10px 24px; background: #3b82f6; color: white; border: none; border-radius: 30px; font-weight: 600; cursor: pointer;">选择此文件夹</button>
         </div>
     </div>
 </div>
 
+<!-- 重命名模态框（通用） -->
 <div id="renameModal" class="modal">
     <div class="rename-dialog">
-        <h3>重命名文件</h3>
+        <h3 id="renameModalTitle">重命名</h3>
         <p id="renameOriginalName" style="margin-bottom: 8px; color: #64748b;"></p>
-        <input type="text" id="renameInput" placeholder="输入新文件名">
+        <input type="text" id="renameInput" placeholder="输入新名称">
         <div style="text-align: right;">
             <button id="renameCancel">取消</button>
             <button id="renameConfirm">确定</button>
@@ -277,18 +269,17 @@
     let currentFileIdForVersion = null;
     let confirmCallback = null;
     let renamePromiseResolve = null;
-    let folderPromiseResolve = null;
     let currentImageUrl = null;
+    let isAllSelected = false;
 
-    let pendingFiles = [];
-    let uploadSetupResolve = null;
-    let selectedTargetParentId = 0;
-    let selectedTargetPath = '根目录';
+    let pendingUploadFiles = [];
+    let uploadTargetParentId = 0;
+    let uploadTargetPath = '根目录';
 
-    let pickerCurrentParentId = 0;
-    let pickerBreadcrumbStack = [{id:0, name:'根目录'}];
-    let pickerSelectedFolderId = 0;
-    let pickerSelectedFolderName = '根目录';
+    let uploadPickerCurrentParentId = 0;
+    let uploadPickerBreadcrumbStack = [{id:0, name:'根目录'}];
+    let uploadPickerSelectedFolderId = 0;
+    let uploadPickerSelectedFolderName = '根目录';
 
     let currentView = 'folder';
     let currentCategory = '';
@@ -298,6 +289,40 @@
 
     let selectedFileIds = new Set();
 
+    let pickerNewFolderCallback = null;
+
+    function openNewFolderModalForPicker(callback) {
+        document.getElementById('newFolderNameInput').value = '';
+        document.getElementById('newFolderModal').style.display = 'block';
+        pickerNewFolderCallback = callback;
+    }
+
+    document.getElementById('newFolderConfirm').onclick = function() {
+        const folderName = document.getElementById('newFolderNameInput').value.trim();
+        if (!folderName) {
+            showToast('请输入文件夹名称');
+            return;
+        }
+        if (pickerNewFolderCallback) {
+            pickerNewFolderCallback(folderName);
+            pickerNewFolderCallback = null;
+            closeNewFolderModal();
+        } else {
+            // 原有主界面新建文件夹逻辑
+            const formData = new FormData();
+            formData.append('folderName', folderName);
+            formData.append('parentId', currentParentId);
+            fetch('/api/file/folder/create', { method: 'POST', body: formData })
+                .then(res => res.json())
+                .then(data => {
+                    showToast(data.message);
+                    if (data.success) {
+                        closeNewFolderModal();
+                        refreshCurrentView();
+                    }
+                });
+        }
+    };
     function parseLocalTime(dateStr) {
         if (!dateStr) return '';
         let d = new Date(dateStr);
@@ -306,26 +331,31 @@
         if (!isNaN(d.getTime())) return d.toLocaleString();
         return dateStr;
     }
+
     function showToast(msg) {
         const toast = document.getElementById('toast');
         toast.innerText = msg;
         toast.className = 'show';
         setTimeout(() => { toast.className = toast.className.replace('show', ''); }, 3000);
     }
+
     function showConfirm(message, onConfirm) {
         document.getElementById('confirmMessage').innerText = message;
         document.getElementById('confirmModal').style.display = 'block';
         confirmCallback = onConfirm;
     }
+
     function closeConfirm() {
         document.getElementById('confirmModal').style.display = 'none';
         confirmCallback = null;
     }
+
     document.getElementById('confirmYes').onclick = function() {
         if (confirmCallback) confirmCallback();
         closeConfirm();
     };
     document.getElementById('confirmNo').onclick = closeConfirm;
+
     function formatSize(bytes) {
         if (bytes === 0) return '-';
         const k = 1024;
@@ -333,16 +363,19 @@
         const i = Math.floor(Math.log(bytes) / Math.log(k));
         return (bytes / Math.pow(k, i)).toFixed(2) + ' ' + sizes[i];
     }
+
     function updateSpaceDisplay(used, total) {
         const percent = total > 0 ? (used / total) * 100 : 0;
         document.getElementById('spaceInfo').innerText = formatSize(used) + ' / ' + formatSize(total);
         document.getElementById('spaceProgress').value = percent;
     }
+
     function loadSpaceInfo() {
         fetch('/api/user/space')
             .then(res => res.json())
             .then(data => { updateSpaceDisplay(data.used || 0, data.total || 0); });
     }
+
     function calibrateSpace() {
         showToast('正在校准空间...');
         fetch('/api/user/recalculate-space', { method: 'POST' })
@@ -366,13 +399,24 @@
                 const id = parseInt(cb.dataset.id);
                 if (checked) selectedFileIds.add(id); else selectedFileIds.delete(id);
             });
+            updateSelectAllButton();
         };
+    }
+
+    function updateSelectAllButton() {
+        const checkboxes = document.querySelectorAll('.file-checkbox');
+        const allChecked = checkboxes.length > 0 && Array.from(checkboxes).every(cb => cb.checked);
+        isAllSelected = allChecked;
+        const btn = document.getElementById('toggleSelectAllBtn');
+        btn.innerHTML = isAllSelected ? '<i class="fas fa-check-square"></i> 取消全选' : '<i class="far fa-square"></i> 全选';
     }
 
     function navigateTo(parentId) {
         currentParentId = parentId;
         updateBreadcrumb();
         selectedFileIds.clear();
+        isAllSelected = false;
+        updateSelectAllButton();
         if (!searchMode && currentView === 'folder') {
             loadFileList();
         } else {
@@ -469,6 +513,7 @@
                 cb.checked = selectedFileIds.has(file.id);
                 cb.onchange = function() {
                     if (cb.checked) selectedFileIds.add(file.id); else selectedFileIds.delete(file.id);
+                    updateSelectAllButton();
                 };
                 checkboxCell.appendChild(cb);
             } else {
@@ -494,6 +539,13 @@
                 row.insertCell(3).innerText = parseLocalTime(file.createdAt);
             }
             const actions = row.insertCell((currentView === 'category' || searchMode) ? 5 : 4);
+
+            const renameBtn = document.createElement('button');
+            renameBtn.className = 'action-btn';
+            renameBtn.innerHTML = '<i class="fas fa-pen"></i>重命名';
+            renameBtn.onclick = () => openRenameModal(file.id, file.fileName, isFolder);
+            actions.appendChild(renameBtn);
+
             if (!isFolder) {
                 const previewBtn = document.createElement('button');
                 previewBtn.className = 'action-btn';
@@ -528,10 +580,46 @@
             };
             actions.appendChild(deleteBtn);
         });
+        updateSelectAllButton();
+        document.getElementById('selectAllCheckbox').checked = false;
     }
+
+    function openRenameModal(fileId, currentName, isFolder) {
+        document.getElementById('renameModalTitle').innerText = isFolder ? '重命名文件夹' : '重命名文件';
+        document.getElementById('renameOriginalName').innerText = '当前名称：' + currentName;
+        document.getElementById('renameInput').value = currentName;
+        document.getElementById('renameModal').style.display = 'block';
+        renamePromiseResolve = (newName) => {
+            if (!newName || newName === currentName) return;
+            const formData = new FormData();
+            formData.append('fileId', fileId);
+            formData.append('newName', newName);
+            fetch('/api/file/rename', { method: 'POST', body: formData })
+                .then(res => res.json())
+                .then(data => {
+                    showToast(data.message);
+                    if (data.success) refreshCurrentView();
+                });
+        };
+    }
+
+    function closeRenameModal(confirmed, newName) {
+        document.getElementById('renameModal').style.display = 'none';
+        if (confirmed && renamePromiseResolve) renamePromiseResolve(newName);
+        renamePromiseResolve = null;
+    }
+
+    document.getElementById('renameConfirm').onclick = function() {
+        const newName = document.getElementById('renameInput').value.trim();
+        if (newName === '') { showToast('名称不能为空'); return; }
+        closeRenameModal(true, newName);
+    };
+    document.getElementById('renameCancel').onclick = function() { closeRenameModal(false); };
 
     function refreshCurrentView() {
         selectedFileIds.clear();
+        isAllSelected = false;
+        updateSelectAllButton();
         if (searchMode) {
             performSearch();
         } else if (currentView === 'folder') {
@@ -578,9 +666,7 @@
     });
 
     function showImagePreview(url) {
-        if (currentImageUrl) {
-            URL.revokeObjectURL(currentImageUrl);
-        }
+        if (currentImageUrl) URL.revokeObjectURL(currentImageUrl);
         currentImageUrl = url;
         document.getElementById('previewImage').src = url;
         document.getElementById('imagePreviewModal').style.display = 'block';
@@ -588,10 +674,7 @@
 
     function closeImagePreview() {
         document.getElementById('imagePreviewModal').style.display = 'none';
-        if (currentImageUrl) {
-            URL.revokeObjectURL(currentImageUrl);
-            currentImageUrl = null;
-        }
+        if (currentImageUrl) { URL.revokeObjectURL(currentImageUrl); currentImageUrl = null; }
         document.getElementById('previewImage').src = '';
     }
 
@@ -604,24 +687,17 @@
         if (['jpg','jpeg','png','gif','bmp','webp'].includes(ext)) {
             fetch('/api/file/preview/' + fileId)
                 .then(res => res.blob())
-                .then(blob => {
-                    const url = URL.createObjectURL(blob);
-                    showImagePreview(url);
-                });
+                .then(blob => showImagePreview(URL.createObjectURL(blob)));
         } else if (ext === 'pdf') {
             fetch('/api/file/preview/' + fileId)
                 .then(res => res.blob())
-                .then(blob => {
-                    const url = URL.createObjectURL(blob);
-                    openInNewTab(url);
-                });
+                .then(blob => openInNewTab(URL.createObjectURL(blob)));
         } else if (['txt','md','java','xml','json','properties','yml','yaml'].includes(ext)) {
             fetch('/api/file/preview/' + fileId)
                 .then(res => res.text())
                 .then(text => {
                     const blob = new Blob([text], {type: 'text/plain'});
-                    const url = URL.createObjectURL(blob);
-                    document.getElementById('previewFrame').src = url;
+                    document.getElementById('previewFrame').src = URL.createObjectURL(blob);
                     document.getElementById('previewModal').style.display = 'block';
                 });
         } else {
@@ -634,24 +710,17 @@
         if (['jpg','jpeg','png','gif','bmp','webp'].includes(ext)) {
             fetch('/api/file/version/preview/' + versionId)
                 .then(res => res.blob())
-                .then(blob => {
-                    const url = URL.createObjectURL(blob);
-                    showImagePreview(url);
-                });
+                .then(blob => showImagePreview(URL.createObjectURL(blob)));
         } else if (ext === 'pdf') {
             fetch('/api/file/version/preview/' + versionId)
                 .then(res => res.blob())
-                .then(blob => {
-                    const url = URL.createObjectURL(blob);
-                    openInNewTab(url);
-                });
+                .then(blob => openInNewTab(URL.createObjectURL(blob)));
         } else if (['txt','md','java','xml','json','properties','yml','yaml'].includes(ext)) {
             fetch('/api/file/version/preview/' + versionId)
                 .then(res => res.text())
                 .then(text => {
                     const blob = new Blob([text], {type: 'text/plain'});
-                    const url = URL.createObjectURL(blob);
-                    document.getElementById('previewFrame').src = url;
+                    document.getElementById('previewFrame').src = URL.createObjectURL(blob);
                     document.getElementById('previewModal').style.display = 'block';
                 });
         } else {
@@ -664,225 +733,23 @@
         document.getElementById('previewFrame').src = '';
     }
 
-    async function requestRename(originalName) {
-        return new Promise((resolve, reject) => {
-            document.getElementById('renameOriginalName').innerText = '原文件名：' + originalName;
-            document.getElementById('renameInput').value = originalName;
-            document.getElementById('renameModal').style.display = 'block';
-            renamePromiseResolve = resolve;
-        });
-    }
-    function closeRenameModal(confirmed, newName) {
-        document.getElementById('renameModal').style.display = 'none';
-        if (confirmed && renamePromiseResolve) renamePromiseResolve(newName);
-        renamePromiseResolve = null;
-    }
-    document.getElementById('renameConfirm').onclick = function() {
-        const newName = document.getElementById('renameInput').value.trim();
-        if (newName === '') { showToast('文件名不能为空'); return; }
-        closeRenameModal(true, newName);
-    };
-    document.getElementById('renameCancel').onclick = function() { closeRenameModal(false); };
-
-    async function uploadSingleFile(file, newFileName, targetParentId) {
-        try {
-            const spaceResp = await fetch('/api/user/space');
-            const spaceData = await spaceResp.json();
-            if (spaceData.used + file.size > spaceData.total) {
-                showToast(`空间不足，无法上传 "${newFileName}"`);
-                return false;
-            }
-            const formData = new FormData();
-            formData.append('file', file, newFileName);
-            formData.append('parentId', targetParentId);
-            const uploadResp = await fetch('/api/file/upload', { method: 'POST', body: formData });
-            const result = await uploadResp.json();
-            showToast(result.message);
-            if (result.success) {
-                await loadSpaceInfo();
-                return true;
-            }
-            return false;
-        } catch (err) {
-            showToast('上传失败：' + err.message);
-            return false;
-        }
+    // ================= 新建文件夹（模态框） =================
+    function openNewFolderModal() {
+        document.getElementById('newFolderNameInput').value = '';
+        document.getElementById('newFolderModal').style.display = 'block';
     }
 
-    function openUploadSetupModal(files) {
-        pendingFiles = files;
-        selectedTargetParentId = currentParentId;
-        selectedTargetPath = currentParentId === 0 ? '根目录' : '当前文件夹';
-        document.getElementById('uploadFileName').value = files.length === 1 ? files[0].name : '';
-        document.getElementById('selectedFolderPath').value = selectedTargetPath;
-        document.getElementById('uploadSetupModal').style.display = 'block';
-        return new Promise((resolve) => {
-            uploadSetupResolve = resolve;
-        });
+    function closeNewFolderModal() {
+        document.getElementById('newFolderModal').style.display = 'none';
+        pickerNewFolderCallback = null;
     }
 
-    function closeUploadSetupModal(confirmed, newName, targetParentId) {
-        document.getElementById('uploadSetupModal').style.display = 'none';
-        if (uploadSetupResolve) {
-            uploadSetupResolve({ confirmed, newName, targetParentId });
-            uploadSetupResolve = null;
-        }
-    }
-
-    document.getElementById('uploadSetupCancel').onclick = function() {
-        closeUploadSetupModal(false, null, null);
-    };
-
-    document.getElementById('uploadSetupConfirm').onclick = function() {
-        let newName = document.getElementById('uploadFileName').value.trim();
-        if (newName === '' && pendingFiles.length === 1) {
-            newName = pendingFiles[0].name;
-        }
-        if (newName === '') {
-            showToast('请输入文件名');
+    document.getElementById('newFolderConfirm').onclick = function() {
+        const folderName = document.getElementById('newFolderNameInput').value.trim();
+        if (!folderName) {
+            showToast('请输入文件夹名称');
             return;
         }
-        closeUploadSetupModal(true, newName, selectedTargetParentId);
-    };
-
-    document.getElementById('browseFolderBtn').onclick = function() {
-        pickerCurrentParentId = 0;
-        pickerBreadcrumbStack = [{id:0, name:'根目录'}];
-        pickerSelectedFolderId = selectedTargetParentId;
-        pickerSelectedFolderName = selectedTargetPath;
-        updatePickerBreadcrumb();
-        loadPickerFolderList();
-        document.getElementById('folderPickerModal').style.display = 'block';
-    };
-
-    function updatePickerBreadcrumb() {
-        const bc = document.getElementById('pickerBreadcrumb');
-        let html = '';
-        pickerBreadcrumbStack.forEach((item, index) => {
-            if (index > 0) html += ' <span>/</span> ';
-            html += `<a onclick="pickerNavigateTo(${item.id}, ${index})">${item.name}</a>`;
-        });
-        bc.innerHTML = html;
-    }
-
-    function pickerNavigateTo(parentId, stackIndex) {
-        if (stackIndex !== undefined) {
-            pickerBreadcrumbStack = pickerBreadcrumbStack.slice(0, stackIndex + 1);
-        } else {
-            pickerBreadcrumbStack.push({id: parentId, name: '...'});
-        }
-        pickerCurrentParentId = parentId;
-        loadPickerFolderList().then(() => {
-            if (stackIndex === undefined) {
-                const currentFolder = document.querySelector(`[data-folder-id="${parentId}"]`);
-                if (currentFolder) {
-                    const name = currentFolder.querySelector('.folder-name')?.innerText || '文件夹';
-                    pickerBreadcrumbStack[pickerBreadcrumbStack.length-1].name = name;
-                    updatePickerBreadcrumb();
-                }
-            }
-        });
-    }
-
-    async function loadPickerFolderList() {
-        const resp = await fetch('/api/file/list?parentId=' + pickerCurrentParentId);
-        const files = await resp.json();
-        const folders = files.filter(f => f.fileSize === 0 && !f.filePath);
-        const container = document.getElementById('folderPickerList');
-        container.innerHTML = '';
-        if (folders.length === 0) {
-            container.innerHTML = '<div style="padding:16px; text-align:center; color:#64748b;">此文件夹下没有子文件夹</div>';
-        } else {
-            folders.forEach(folder => {
-                const div = document.createElement('div');
-                div.className = 'folder-picker-item';
-                div.setAttribute('data-folder-id', folder.id);
-                div.innerHTML = `<i class="fas fa-folder folder-icon"></i> <span class="folder-name">${folder.fileName}</span>`;
-                div.onclick = (e) => {
-                    document.querySelectorAll('.folder-picker-item').forEach(el => el.classList.remove('selected'));
-                    div.classList.add('selected');
-                    pickerSelectedFolderId = folder.id;
-                    pickerSelectedFolderName = folder.fileName;
-                };
-                div.ondblclick = () => {
-                    pickerNavigateTo(folder.id);
-                };
-                container.appendChild(div);
-                if (folder.id === pickerSelectedFolderId) {
-                    div.classList.add('selected');
-                }
-            });
-        }
-    }
-
-    function closeFolderPickerModal() {
-        document.getElementById('folderPickerModal').style.display = 'none';
-    }
-
-    document.getElementById('selectCurrentFolderBtn').onclick = function() {
-        let path = pickerBreadcrumbStack.map(item => item.name).join(' / ');
-        if (pickerSelectedFolderId === 0) {
-            path = '根目录';
-        } else {
-            path = path + ' / ' + pickerSelectedFolderName;
-        }
-        selectedTargetParentId = pickerSelectedFolderId;
-        selectedTargetPath = path;
-        document.getElementById('selectedFolderPath').value = path;
-        closeFolderPickerModal();
-    };
-
-    document.getElementById('newFolderInPickerBtn').onclick = function() {
-        const folderName = prompt('请输入新文件夹名称');
-        if (!folderName) return;
-        const formData = new FormData();
-        formData.append('folderName', folderName);
-        formData.append('parentId', pickerCurrentParentId);
-        fetch('/api/file/folder/create', { method: 'POST', body: formData })
-            .then(res => res.json())
-            .then(data => {
-                showToast(data.message);
-                if (data.success) {
-                    loadPickerFolderList();
-                }
-            });
-    };
-
-    document.getElementById('uploadBtn').onclick = async () => {
-        const fileInput = document.getElementById('fileInput');
-        const files = Array.from(fileInput.files);
-        if (files.length === 0) { showToast('请选择文件'); return; }
-
-        let targetParentId = currentParentId;
-        let newName = files.length === 1 ? files[0].name : null;
-
-        if (files.length === 1) {
-            const result = await openUploadSetupModal(files);
-            if (!result.confirmed) {
-                fileInput.value = '';
-                return;
-            }
-            newName = result.newName;
-            targetParentId = result.targetParentId;
-            await uploadSingleFile(files[0], newName, targetParentId);
-        } else {
-            targetParentId = currentParentId;
-            for (const file of files) {
-                try {
-                    const renameResult = await requestRename(file.name);
-                    await uploadSingleFile(file, renameResult, targetParentId);
-                } catch (e) { continue; }
-            }
-        }
-
-        refreshCurrentView();
-        fileInput.value = '';
-        loadSpaceInfo();
-    };
-
-    document.getElementById('newFolderBtn').onclick = () => {
-        const folderName = prompt('请输入文件夹名称');
-        if (!folderName) return;
         const formData = new FormData();
         formData.append('folderName', folderName);
         formData.append('parentId', currentParentId);
@@ -890,10 +757,215 @@
             .then(res => res.json())
             .then(data => {
                 showToast(data.message);
-                if (data.success) refreshCurrentView();
+                if (data.success) {
+                    closeNewFolderModal();
+                    refreshCurrentView();
+                }
             });
     };
 
+    document.getElementById('newFolderCancel').onclick = closeNewFolderModal;
+    document.getElementById('newFolderBtn').onclick = openNewFolderModal;
+
+    // ================= 上传目标文件夹选择器 =================
+    function openUploadFolderPicker(files) {
+        pendingUploadFiles = files;
+        uploadPickerCurrentParentId = 0;
+        uploadPickerBreadcrumbStack = [{id:0, name:'根目录'}];
+        uploadPickerSelectedFolderId = currentParentId;
+        uploadPickerSelectedFolderName = currentParentId === 0 ? '根目录' : '当前文件夹';
+        updateUploadPickerBreadcrumb();
+        loadUploadPickerFolderList();
+        document.getElementById('uploadFolderPickerModal').style.display = 'block';
+        return new Promise((resolve) => {
+            window._uploadFolderPickerResolve = resolve;
+        });
+    }
+
+    function closeUploadFolderPickerModal() {
+        document.getElementById('uploadFolderPickerModal').style.display = 'none';
+        if (window._uploadFolderPickerResolve) {
+            window._uploadFolderPickerResolve(null);
+            delete window._uploadFolderPickerResolve;
+        }
+    }
+
+    function updateUploadPickerBreadcrumb() {
+        const bc = document.getElementById('uploadPickerBreadcrumb');
+        let html = '';
+        uploadPickerBreadcrumbStack.forEach((item, index) => {
+            if (index > 0) html += ' <span>/</span> ';
+            html += `<a onclick="uploadPickerNavigateTo(${item.id}, ${index})">${item.name}</a>`;
+        });
+        bc.innerHTML = html;
+    }
+
+    function uploadPickerNavigateTo(parentId, stackIndex) {
+        if (stackIndex !== undefined) {
+            uploadPickerBreadcrumbStack = uploadPickerBreadcrumbStack.slice(0, stackIndex + 1);
+        } else {
+            uploadPickerBreadcrumbStack.push({id: parentId, name: '...'});
+        }
+        uploadPickerCurrentParentId = parentId;
+        loadUploadPickerFolderList().then(() => {
+            if (stackIndex === undefined) {
+                const currentFolder = document.querySelector(`[data-upload-folder-id="${parentId}"]`);
+                if (currentFolder) {
+                    const name = currentFolder.querySelector('.folder-name')?.innerText || '文件夹';
+                    uploadPickerBreadcrumbStack[uploadPickerBreadcrumbStack.length-1].name = name;
+                    updateUploadPickerBreadcrumb();
+                }
+            }
+        });
+    }
+
+    async function loadUploadPickerFolderList() {
+        const resp = await fetch('/api/file/list?parentId=' + uploadPickerCurrentParentId);
+        const files = await resp.json();
+        const folders = files.filter(f => f.fileSize === 0 && !f.filePath);
+        const container = document.getElementById('uploadFolderPickerList');
+        container.innerHTML = '';
+        if (folders.length === 0) {
+            container.innerHTML = '<div style="padding:16px; text-align:center; color:#64748b;">此文件夹下没有子文件夹</div>';
+        } else {
+            folders.forEach(folder => {
+                const div = document.createElement('div');
+                div.className = 'folder-picker-item';
+                div.setAttribute('data-upload-folder-id', folder.id);
+                div.innerHTML = `<i class="fas fa-folder folder-icon"></i> <span class="folder-name">${folder.fileName}</span>`;
+                div.onclick = (e) => {
+                    document.querySelectorAll('#uploadFolderPickerList .folder-picker-item').forEach(el => el.classList.remove('selected'));
+                    div.classList.add('selected');
+                    uploadPickerSelectedFolderId = folder.id;
+                    uploadPickerSelectedFolderName = folder.fileName;
+                };
+                div.ondblclick = () => uploadPickerNavigateTo(folder.id);
+                container.appendChild(div);
+                if (folder.id === uploadPickerSelectedFolderId) div.classList.add('selected');
+            });
+        }
+    }
+
+    document.getElementById('selectUploadFolderBtn').onclick = function() {
+        let path = uploadPickerBreadcrumbStack.map(item => item.name).join(' / ');
+        if (uploadPickerSelectedFolderId === 0) path = '根目录';
+        else path = path + ' / ' + uploadPickerSelectedFolderName;
+        uploadTargetParentId = uploadPickerSelectedFolderId;
+        uploadTargetPath = path;
+        if (window._uploadFolderPickerResolve) {
+            window._uploadFolderPickerResolve({ parentId: uploadTargetParentId, path: uploadTargetPath });
+            delete window._uploadFolderPickerResolve;
+        }
+        closeUploadFolderPickerModal();
+    };
+
+    document.getElementById('newFolderInUploadPickerBtn').onclick = function() {
+        openNewFolderModalForPicker((folderName) => {
+            if (!folderName) return;
+            const formData = new FormData();
+            formData.append('folderName', folderName);
+            formData.append('parentId', uploadPickerCurrentParentId);
+            fetch('/api/file/folder/create', { method: 'POST', body: formData })
+                .then(res => res.json())
+                .then(data => {
+                    showToast(data.message);
+                    if (data.success) loadUploadPickerFolderList();
+                });
+        });
+    };
+
+    // ================= 上传核心逻辑 =================
+    async function checkFileExistsInTarget(fileName, parentId) {
+        const resp = await fetch('/api/file/list?parentId=' + parentId);
+        const files = await resp.json();
+        return files.some(f => f.fileName === fileName);
+    }
+
+    async function promptRenameForConflict(originalName) {
+        return new Promise((resolve) => {
+            document.getElementById('renameModalTitle').innerText = '文件重命名';
+            document.getElementById('renameOriginalName').innerText = '目标文件夹已存在同名文件，请修改文件名：';
+            document.getElementById('renameInput').value = originalName;
+            document.getElementById('renameModal').style.display = 'block';
+            const oldResolve = renamePromiseResolve;
+            renamePromiseResolve = (newName) => {
+                resolve(newName);
+                renamePromiseResolve = oldResolve;
+            };
+            const originalCancel = document.getElementById('renameCancel').onclick;
+            document.getElementById('renameCancel').onclick = function() {
+                resolve(null);
+                document.getElementById('renameModal').style.display = 'none';
+                document.getElementById('renameCancel').onclick = originalCancel;
+                renamePromiseResolve = oldResolve;
+            };
+        });
+    }
+
+    async function uploadSingleFile(file, targetParentId) {
+        try {
+            const spaceResp = await fetch('/api/user/space');
+            const spaceData = await spaceResp.json();
+            if (spaceData.used + file.size > spaceData.total) {
+                showToast(`空间不足，无法上传 "${file.name}"`);
+                return false;
+            }
+
+            let finalName = file.name;
+            const exists = await checkFileExistsInTarget(finalName, targetParentId);
+            if (exists) {
+                const newName = await promptRenameForConflict(finalName);
+                if (newName === null) {
+                    showToast(`已取消上传 "${file.name}"`);
+                    return false;
+                }
+                finalName = newName;
+            }
+
+            const formData = new FormData();
+            formData.append('file', file, finalName);
+            formData.append('parentId', targetParentId);
+            const uploadResp = await fetch('/api/file/upload', { method: 'POST', body: formData });
+            const result = await uploadResp.json();
+            if (result.success) {
+                showToast(`"${finalName}" 上传成功`);
+                return true;
+            } else {
+                showToast(result.message);
+                return false;
+            }
+        } catch (err) {
+            showToast('上传失败：' + err.message);
+            return false;
+        }
+    }
+
+    document.getElementById('uploadBtn').onclick = async () => {
+        const fileInput = document.getElementById('fileInput');
+        const files = Array.from(fileInput.files);
+        if (files.length === 0) {
+            showToast('请选择文件');
+            return;
+        }
+
+        const folderResult = await openUploadFolderPicker(files);
+        if (!folderResult) {
+            fileInput.value = '';
+            return;
+        }
+        const targetParentId = folderResult.parentId;
+
+        showToast(`开始上传到 ${folderResult.path}，共 ${files.length} 个文件`);
+        for (const file of files) {
+            await uploadSingleFile(file, targetParentId);
+        }
+        showToast('上传任务完成');
+        refreshCurrentView();
+        fileInput.value = '';
+        loadSpaceInfo();
+    };
+
+    // ================= 其他功能 =================
     function openVersionModal(fileId) {
         currentFileIdForVersion = fileId;
         fetch('/api/file/versions?fileId=' + fileId)
@@ -932,6 +1004,7 @@
                 .then(msg => { showToast(msg); openVersionModal(fileId); loadSpaceInfo(); });
         });
     }
+
     function openShareModal(fileId) {
         const modal = document.getElementById('shareModal');
         const content = document.getElementById('shareContent');
@@ -965,15 +1038,9 @@
             .catch(err => showToast('生成分享失败：' + err));
     }
 
-    function closePackageShareModal() {
-        document.getElementById('packageShareModal').style.display = 'none';
-    }
-
+    function closePackageShareModal() { document.getElementById('packageShareModal').style.display = 'none'; }
     function submitPackageShare() {
-        if (selectedFileIds.size === 0) {
-            showToast('请至少选择一个文件');
-            return;
-        }
+        if (selectedFileIds.size === 0) { showToast('请至少选择一个文件'); return; }
         const zipName = document.getElementById('packageZipName').value.trim() || '打包文件.zip';
         const password = document.getElementById('packagePassword').value;
         const expireDays = document.getElementById('packageExpireDays').value;
@@ -1004,7 +1071,9 @@
     window.onclick = function(event) {
         if (event.target.classList.contains('modal')) {
             if (event.target.id === 'imagePreviewModal') closeImagePreview();
-            else if (event.target.id !== 'uploadSetupModal' && event.target.id !== 'folderPickerModal' && event.target.id !== 'packageShareModal') {
+            else if (event.target.id === 'newFolderModal') closeNewFolderModal();
+            else if (event.target.id === 'uploadFolderPickerModal') closeUploadFolderPickerModal();
+            else if (event.target.id !== 'packageShareModal') {
                 event.target.style.display = 'none';
             }
         }
@@ -1020,44 +1089,33 @@
             fetch('/api/user/logout').then(() => { window.location.href = '/login'; });
         });
     }
+
     function fetchUserInfo() {
         fetch('/api/user/info')
-            .then(res => {
-                if (!res.ok) throw new Error('获取用户信息失败');
-                return res.json();
-            })
+            .then(res => res.json())
             .then(user => {
                 if (user) {
-                    const avatarImg = document.getElementById('headerAvatar');
-                    const usernameSpan = document.getElementById('headerUsername');
-                    if (avatarImg) {
-                        avatarImg.src = user.avatar ? user.avatar : '/images/default.png';
-                    }
-                    if (usernameSpan) {
-                        usernameSpan.innerText = user.username || '';
-                    }
+                    document.getElementById('headerAvatar').src = user.avatar || '/images/default.png';
+                    document.getElementById('headerUsername').innerText = user.username || '';
                 }
-            })
-            .catch(err => console.error('获取用户信息出错:', err));
+            });
     }
 
-    document.getElementById('selectAllBtn').onclick = function() {
-        document.querySelectorAll('.file-checkbox').forEach(cb => {
-            cb.checked = true;
-            selectedFileIds.add(parseInt(cb.dataset.id));
+    document.getElementById('toggleSelectAllBtn').onclick = function() {
+        const checkboxes = document.querySelectorAll('.file-checkbox');
+        const newState = !isAllSelected;
+        checkboxes.forEach(cb => {
+            cb.checked = newState;
+            const id = parseInt(cb.dataset.id);
+            if (newState) selectedFileIds.add(id);
+            else selectedFileIds.delete(id);
         });
+        document.getElementById('selectAllCheckbox').checked = newState;
+        updateSelectAllButton();
     };
-    document.getElementById('deselectAllBtn').onclick = function() {
-        document.querySelectorAll('.file-checkbox').forEach(cb => {
-            cb.checked = false;
-            selectedFileIds.delete(parseInt(cb.dataset.id));
-        });
-    };
+
     document.getElementById('batchDeleteBtn').onclick = function() {
-        if (selectedFileIds.size === 0) {
-            showToast('请至少选择一个文件');
-            return;
-        }
+        if (selectedFileIds.size === 0) { showToast('请至少选择一个文件'); return; }
         showConfirm(`确定要删除选中的 ${selectedFileIds.size} 个文件吗？`, function() {
             const params = new URLSearchParams();
             selectedFileIds.forEach(id => params.append('fileIds', id));
@@ -1070,20 +1128,14 @@
                 });
         });
     };
+
     document.getElementById('batchDownloadBtn').onclick = function() {
-        if (selectedFileIds.size === 0) {
-            showToast('请至少选择一个文件');
-            return;
-        }
-        selectedFileIds.forEach(id => {
-            window.open('/api/file/download?fileId=' + id, '_blank');
-        });
+        if (selectedFileIds.size === 0) { showToast('请至少选择一个文件'); return; }
+        selectedFileIds.forEach(id => window.open('/api/file/download?fileId=' + id, '_blank'));
     };
+
     document.getElementById('batchPackageShareBtn').onclick = function() {
-        if (selectedFileIds.size === 0) {
-            showToast('请至少选择一个文件');
-            return;
-        }
+        if (selectedFileIds.size === 0) { showToast('请至少选择一个文件'); return; }
         document.getElementById('packageZipName').value = '';
         document.getElementById('packagePassword').value = '';
         document.getElementById('packageExpireDays').value = '';

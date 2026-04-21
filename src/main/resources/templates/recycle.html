@@ -14,10 +14,15 @@
         .user-info a { color: #3b82f6; text-decoration: none; font-weight: 500; margin: 0 4px; }
         .avatar-icon { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; border: 1px solid #e2e8f0; cursor: pointer; }
         .nav-link { display: inline-flex; align-items: center; gap: 8px; background: white; padding: 10px 20px; border-radius: 40px; text-decoration: none; color: #3b82f6; font-weight: 500; margin-bottom: 20px; box-shadow: 0 2px 6px rgba(0,0,0,0.02); }
+        .batch-actions { display: flex; gap: 8px; margin-bottom: 16px; }
+        .batch-actions button { background: #f1f5f9; border: 1px solid #e2e8f0; padding: 8px 16px; border-radius: 30px; font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: all 0.15s; }
+        .batch-actions button:hover { background: #e2e8f0; }
+        .batch-actions button.danger:hover { background: #fee2e2; border-color: #ef4444; color: #b91c1c; }
         .file-table-container { background: white; border-radius: 24px; padding: 8px 0; box-shadow: 0 8px 24px rgba(0,0,0,0.04); border: 1px solid #eef2f6; overflow-x: auto; }
         table { width: 100%; border-collapse: collapse; }
         th { text-align: left; padding: 18px 20px; background: #f8fafc; font-weight: 600; font-size: 14px; color: #475569; border-bottom: 1px solid #e2e8f0; }
         td { padding: 16px 20px; border-bottom: 1px solid #f1f5f9; color: #334155; }
+        .checkbox-col { width: 40px; text-align: center; }
         .action-buttons { display: flex; gap: 8px; }
         .action-btn { background: none; border: 1px solid #e2e8f0; padding: 6px 12px; border-radius: 20px; font-size: 13px; font-weight: 500; color: #475569; cursor: pointer; transition: all 0.15s; }
         .action-btn:hover { background: #3b82f6; border-color: #3b82f6; color: white; }
@@ -42,12 +47,28 @@
     </div>
 </div>
 <a href="/files" class="nav-link"><i class="fas fa-arrow-left"></i> 回到我的文件</a>
+
+<div class="batch-actions">
+    <button id="toggleSelectAllBtn"><i class="far fa-check-square"></i> 全选</button>
+    <button id="batchRestoreBtn"><i class="fas fa-undo-alt"></i> 批量恢复</button>
+    <button id="batchDeleteBtn" class="danger"><i class="fas fa-trash"></i> 批量彻底删除</button>
+</div>
+
 <div class="file-table-container">
     <table>
-        <thead><tr><th>文件名</th><th>大小</th><th>删除时间</th><th>操作</th></tr></thead>
+        <thead>
+        <tr>
+            <th class="checkbox-col"><input type="checkbox" id="selectAllCheckbox" title="全选/取消"></th>
+            <th>文件名</th>
+            <th>大小</th>
+            <th>删除时间</th>
+            <th>操作</th>
+        </tr>
+        </thead>
         <tbody id="recycleList"></tbody>
     </table>
 </div>
+
 <div id="toast"></div>
 <div id="confirmModal" class="modal">
     <div class="confirm-dialog">
@@ -56,8 +77,12 @@
         <button id="confirmNo">取消</button>
     </div>
 </div>
+
 <script>
+    let selectedFileIds = new Set();
     let confirmCallback = null;
+    let isAllSelected = false;
+
     function parseLocalTime(dateStr) {
         if (!dateStr) return '';
         let d = new Date(dateStr);
@@ -66,23 +91,28 @@
         if (!isNaN(d.getTime())) return d.toLocaleString();
         return dateStr;
     }
+
     function showToast(msg) {
         const toast = document.getElementById('toast');
         toast.innerText = msg;
         toast.className = 'show';
         setTimeout(() => { toast.className = toast.className.replace('show', ''); }, 3000);
     }
+
     function showConfirm(message, onConfirm) {
         document.getElementById('confirmMessage').innerText = message;
         document.getElementById('confirmModal').style.display = 'block';
         confirmCallback = onConfirm;
     }
+
     function closeConfirm() {
         document.getElementById('confirmModal').style.display = 'none';
         confirmCallback = null;
     }
+
     document.getElementById('confirmYes').onclick = function() { if (confirmCallback) confirmCallback(); closeConfirm(); };
     document.getElementById('confirmNo').onclick = closeConfirm;
+
     function formatSize(bytes) {
         if (bytes === 0) return '0 B';
         const k = 1024;
@@ -90,25 +120,45 @@
         const i = Math.floor(Math.log(bytes) / Math.log(k));
         return (bytes / Math.pow(k, i)).toFixed(2) + ' ' + sizes[i];
     }
+
     function loadRecycleBin() {
         fetch('/api/recycle/list')
             .then(res => res.json())
             .then(files => {
                 const tbody = document.getElementById('recycleList');
                 tbody.innerHTML = '';
+                selectedFileIds.clear();
+                isAllSelected = false;
+                updateSelectAllButton();
+                document.getElementById('selectAllCheckbox').checked = false;
+
                 if (files.length === 0) {
                     const row = tbody.insertRow();
                     const cell = row.insertCell(0);
-                    cell.colSpan = 4;
+                    cell.colSpan = 5;
                     cell.innerText = '回收站为空';
                     return;
                 }
                 files.forEach(file => {
                     const row = tbody.insertRow();
-                    row.insertCell(0).innerText = file.fileName;
-                    row.insertCell(1).innerText = formatSize(file.fileSize);
-                    row.insertCell(2).innerText = parseLocalTime(file.deletedAt);
-                    const actions = row.insertCell(3);
+
+                    const checkboxCell = row.insertCell(0);
+                    const cb = document.createElement('input');
+                    cb.type = 'checkbox';
+                    cb.className = 'file-checkbox';
+                    cb.dataset.id = file.id;
+                    cb.onchange = function() {
+                        if (cb.checked) selectedFileIds.add(file.id);
+                        else selectedFileIds.delete(file.id);
+                        updateSelectAllButton();
+                    };
+                    checkboxCell.appendChild(cb);
+
+                    row.insertCell(1).innerText = file.fileName;
+                    row.insertCell(2).innerText = formatSize(file.fileSize);
+                    row.insertCell(3).innerText = parseLocalTime(file.deletedAt);
+
+                    const actions = row.insertCell(4);
                     const restoreBtn = document.createElement('button');
                     restoreBtn.className = 'action-btn';
                     restoreBtn.innerHTML = '<i class="fas fa-undo-alt"></i> 还原';
@@ -132,7 +182,73 @@
                 });
             });
     }
+
+    function updateSelectAllButton() {
+        const checkboxes = document.querySelectorAll('.file-checkbox');
+        const allChecked = checkboxes.length > 0 && Array.from(checkboxes).every(cb => cb.checked);
+        isAllSelected = allChecked;
+        const btn = document.getElementById('toggleSelectAllBtn');
+        btn.innerHTML = isAllSelected ? '<i class="fas fa-check-square"></i> 取消全选' : '<i class="far fa-square"></i> 全选';
+    }
+
+    document.getElementById('selectAllCheckbox').onchange = function(e) {
+        const checked = e.target.checked;
+        document.querySelectorAll('.file-checkbox').forEach(cb => {
+            cb.checked = checked;
+            const id = parseInt(cb.dataset.id);
+            if (checked) selectedFileIds.add(id);
+            else selectedFileIds.delete(id);
+        });
+        updateSelectAllButton();
+    };
+
+    document.getElementById('toggleSelectAllBtn').onclick = function() {
+        const checkboxes = document.querySelectorAll('.file-checkbox');
+        const newState = !isAllSelected;
+        checkboxes.forEach(cb => {
+            cb.checked = newState;
+            const id = parseInt(cb.dataset.id);
+            if (newState) selectedFileIds.add(id);
+            else selectedFileIds.delete(id);
+        });
+        document.getElementById('selectAllCheckbox').checked = newState;
+        updateSelectAllButton();
+    };
+
+    document.getElementById('batchRestoreBtn').onclick = function() {
+        if (selectedFileIds.size === 0) {
+            showToast('请至少选择一个文件');
+            return;
+        }
+        showConfirm(`确定要恢复选中的 ${selectedFileIds.size} 个文件吗？`, function() {
+            const promises = Array.from(selectedFileIds).map(id =>
+                fetch('/api/recycle/restore?fileId=' + id, { method: 'POST' })
+            );
+            Promise.all(promises).then(() => {
+                showToast('批量恢复成功');
+                loadRecycleBin();
+            });
+        });
+    };
+
+    document.getElementById('batchDeleteBtn').onclick = function() {
+        if (selectedFileIds.size === 0) {
+            showToast('请至少选择一个文件');
+            return;
+        }
+        showConfirm(`确定要彻底删除选中的 ${selectedFileIds.size} 个文件吗？此操作不可恢复！`, function() {
+            const promises = Array.from(selectedFileIds).map(id =>
+                fetch('/api/recycle/permanent?fileId=' + id, { method: 'POST' })
+            );
+            Promise.all(promises).then(() => {
+                showToast('批量彻底删除成功');
+                loadRecycleBin();
+            });
+        });
+    };
+
     window.onclick = function(event) { if (event.target.classList.contains('modal')) closeConfirm(); }
+
     loadRecycleBin();
 </script>
 </body>

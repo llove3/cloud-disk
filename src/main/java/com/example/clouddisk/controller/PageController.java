@@ -31,6 +31,9 @@ public class PageController {
     @GetMapping("/shares")
     public String sharesPage() { return "shares"; }
 
-
+    @GetMapping("/")
+    public String root() {
+        return "redirect:/login";
+    }
 
 }

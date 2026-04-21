@@ -168,7 +168,7 @@
             window.URL.revokeObjectURL(url);
         } else {
             const text = await resp.text();
-            showToast(text || '下载失败');
+            showToast(text || '下载失败，请检查链接或提取码');
         }
     };
 
@@ -183,6 +183,8 @@
                 } else {
                     document.getElementById('fileName').innerText = '点击下载按钮获取文件';
                 }
+            } else if (testResp.status === 404) {
+                document.getElementById('fileName').innerText = '分享不存在或已被删除';
             } else {
                 document.getElementById('fileName').innerText = '点击下载按钮获取文件';
             }

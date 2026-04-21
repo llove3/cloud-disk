@@ -7,12 +7,11 @@ import com.example.clouddisk.mapper.FileMapper;
 import com.example.clouddisk.mapper.FileVersionMapper;
 import com.example.clouddisk.mapper.UserMapper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.security.MessageDigest;
 import java.security.SecureRandom;
-import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -31,29 +30,14 @@ public class UserService {
     @Autowired
     private MailService mailService;
 
+    private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+
     private final Map<String, CodeInfo> verificationCodes = new ConcurrentHashMap<>();
 
     private static class CodeInfo {
         String code;
         long expireTime;
         CodeInfo(String code, long expireTime) { this.code = code; this.expireTime = expireTime; }
-    }
-
-    public String generateSalt() {
-        byte[] salt = new byte[16];
-        new SecureRandom().nextBytes(salt);
-        return Base64.getEncoder().encodeToString(salt);
-    }
-
-    public String md5(String password, String salt) {
-        String input = password + salt;
-        try {
-            MessageDigest md = MessageDigest.getInstance("MD5");
-            byte[] result = md.digest(input.getBytes());
-            return Base64.getEncoder().encodeToString(result);
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
     }
 
     public boolean register(String email, String password, String code) {
@@ -65,7 +49,7 @@ public class UserService {
             return false;
         }
         String salt = generateSalt();
-        String encryptedPwd = md5(password, salt);
+        String encryptedPwd = passwordEncoder.encode(password);
         User user = new User();
         user.setUsername(email);
         user.setEmail(email);
@@ -79,8 +63,7 @@ public class UserService {
     public User loginByEmail(String email, String password) {
         User user = userMapper.findByEmail(email);
         if (user == null) return null;
-        String encryptedPwd = md5(password, user.getSalt());
-        if (encryptedPwd.equals(user.getPassword())) {
+        if (passwordEncoder.matches(password, user.getPassword())) {
             return user;
         }
         return null;
@@ -102,7 +85,7 @@ public class UserService {
         User user = userMapper.findByEmail(email);
         if (user == null) return false;
         String salt = generateSalt();
-        String encryptedPwd = md5(newPassword, salt);
+        String encryptedPwd = passwordEncoder.encode(newPassword);
         userMapper.updatePassword(user.getId(), encryptedPwd, salt);
         verificationCodes.remove(email);
         return true;
@@ -147,13 +130,19 @@ public class UserService {
     public boolean changePassword(Long userId, String oldPassword, String newPassword) {
         User user = userMapper.findById(userId);
         if (user == null) return false;
-        if (!md5(oldPassword, user.getSalt()).equals(user.getPassword())) return false;
+        if (!passwordEncoder.matches(oldPassword, user.getPassword())) return false;
+        String newEncryptedPwd = passwordEncoder.encode(newPassword);
         String newSalt = generateSalt();
-        String newEncryptedPwd = md5(newPassword, newSalt);
         return userMapper.updatePassword(userId, newEncryptedPwd, newSalt) > 0;
     }
 
     public void updateAvatar(Long userId, String avatarUrl) {
         userMapper.updateAvatar(userId, avatarUrl);
+    }
+
+    private String generateSalt() {
+        byte[] salt = new byte[16];
+        new SecureRandom().nextBytes(salt);
+        return java.util.Base64.getEncoder().encodeToString(salt);
     }
 }

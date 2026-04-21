@@ -10,14 +10,13 @@ public class Share {
     private Long userId;
     private String shareCode;
     private String password;
-
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
     private Date expireTime;
-
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
     private Date createdAt;
-
     private String fileName;
+    private Integer visitCount;
+    private Boolean isPackage;
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -35,4 +34,8 @@ public class Share {
     public void setCreatedAt(Date createdAt) { this.createdAt = createdAt; }
     public String getFileName() { return fileName; }
     public void setFileName(String fileName) { this.fileName = fileName; }
+    public Integer getVisitCount() { return visitCount; }
+    public void setVisitCount(Integer visitCount) { this.visitCount = visitCount; }
+    public Boolean getIsPackage() { return isPackage; }
+    public void setIsPackage(Boolean isPackage) { this.isPackage = isPackage; }
 }

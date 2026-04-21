@@ -2,11 +2,12 @@ package com.example.clouddisk.controller;
 
 import com.example.clouddisk.entity.FileInfo;
 import com.example.clouddisk.entity.FileVersion;
+import com.example.clouddisk.entity.Share;
 import com.example.clouddisk.entity.User;
 import com.example.clouddisk.service.FileService;
+import com.example.clouddisk.service.ShareService;
 import com.example.clouddisk.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.core.io.FileSystemResource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -30,8 +31,12 @@ public class FileController {
 
     @Autowired
     private FileService fileService;
+
     @Autowired
     private UserService userService;
+
+    @Autowired
+    private ShareService shareService;
 
     @PostMapping("/upload")
     public Map<String, Object> upload(@RequestParam("file") MultipartFile file,
@@ -129,6 +134,31 @@ public class FileController {
         return "删除成功";
     }
 
+    @PostMapping("/batch-delete")
+    public String batchDelete(@RequestParam List<Long> fileIds, HttpSession session) {
+        User user = (User) session.getAttribute("user");
+        if (user == null) {
+            return "请先登录";
+        }
+        fileService.batchDelete(fileIds, user.getId());
+        return "批量删除成功";
+    }
+
+    @GetMapping("/batch-download")
+    public ResponseEntity<byte[]> batchDownload(@RequestParam List<Long> fileIds, HttpSession session) throws IOException {
+        User user = (User) session.getAttribute("user");
+        if (user == null) {
+            return ResponseEntity.status(401).build();
+        }
+        byte[] zipData = fileService.batchDownloadAsZip(fileIds, user.getId());
+        String zipName = "files_" + System.currentTimeMillis() + ".zip";
+        String encodedName = URLEncoder.encode(zipName, StandardCharsets.UTF_8).replaceAll("\\+", "%20");
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename*=UTF-8''" + encodedName)
+                .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                .body(zipData);
+    }
+
     @GetMapping("/versions")
     public List<FileVersion> getVersions(@RequestParam Long fileId, HttpSession session) {
         User user = (User) session.getAttribute("user");
@@ -204,6 +234,31 @@ public class FileController {
         return ResponseEntity.ok()
                 .contentType(MediaType.parseMediaType(mimeType))
                 .body(data);
+    }
+
+    @PostMapping("/create-package-share")
+    public Map<String, Object> createPackageShare(@RequestParam List<Long> fileIds,
+                                                  @RequestParam(required = false) String zipName,
+                                                  @RequestParam(required = false) String password,
+                                                  @RequestParam(required = false) Integer expireDays,
+                                                  HttpSession session) {
+        Map<String, Object> result = new HashMap<>();
+        User user = (User) session.getAttribute("user");
+        if (user == null) {
+            result.put("success", false);
+            result.put("message", "请先登录");
+            return result;
+        }
+        try {
+            Share share = shareService.createPackageShare(user.getId(), fileIds, zipName, password, expireDays);
+            result.put("success", true);
+            result.put("message", "打包分享创建成功");
+            result.put("share", share);
+        } catch (Exception e) {
+            result.put("success", false);
+            result.put("message", e.getMessage());
+        }
+        return result;
     }
 
     @GetMapping("/version/preview/{versionId}")

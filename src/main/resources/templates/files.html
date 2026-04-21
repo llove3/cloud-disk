@@ -24,6 +24,10 @@
         .upload-btn, .folder-btn { background: #3b82f6; color: white; border: none; padding: 12px 28px; border-radius: 30px; font-weight: 600; cursor: pointer; transition: all 0.2s; box-shadow: 0 4px 10px rgba(59,130,246,0.2); display: flex; align-items: center; gap: 8px; }
         .folder-btn { background: #8b5cf6; box-shadow: 0 4px 10px rgba(139,92,246,0.2); }
         .upload-btn:hover, .folder-btn:hover { transform: translateY(-2px); }
+        .batch-actions { display: flex; gap: 8px; margin-bottom: 16px; }
+        .batch-actions button { background: #f1f5f9; border: 1px solid #e2e8f0; padding: 8px 16px; border-radius: 30px; font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: all 0.15s; }
+        .batch-actions button:hover { background: #e2e8f0; }
+        .batch-actions button.danger:hover { background: #fee2e2; border-color: #ef4444; color: #b91c1c; }
         .category-tabs { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
         .category-tab { background: white; border: 1px solid #e2e8f0; padding: 8px 18px; border-radius: 40px; font-size: 14px; font-weight: 500; color: #475569; cursor: pointer; transition: all 0.15s; }
         .category-tab.active { background: #3b82f6; border-color: #3b82f6; color: white; }
@@ -65,8 +69,8 @@
         #confirmNo { background: #f1f5f9; color: #1e293b; }
         .close { font-size: 24px; color: #94a3b8; float: right; cursor: pointer; }
         .close:hover { color: #0f172a; }
-        #shareContent input { width: 100%; padding: 12px 16px; border: 2px solid #e2e8f0; border-radius: 16px; margin: 8px 0 16px; font-size: 14px; background: #fafcff; }
-        #shareContent button { background: #3b82f6; color: white; border: none; padding: 12px 24px; border-radius: 40px; font-weight: 600; cursor: pointer; }
+        #shareContent input, #packageShareContent input { width: 100%; padding: 12px 16px; border: 2px solid #e2e8f0; border-radius: 16px; margin: 8px 0 16px; font-size: 14px; background: #fafcff; }
+        #shareContent button, #packageShareContent button { background: #3b82f6; color: white; border: none; padding: 12px 24px; border-radius: 40px; font-weight: 600; cursor: pointer; }
         .rename-dialog { background: white; padding: 28px; border-radius: 24px; width: 400px; margin: 20% auto; text-align: left; }
         .rename-dialog h3 { margin-bottom: 16px; color: #0f172a; }
         .rename-dialog input { width: 100%; padding: 12px 16px; border: 2px solid #e2e8f0; border-radius: 12px; font-size: 14px; margin-bottom: 20px; }
@@ -84,6 +88,7 @@
         .folder-picker-item:hover { background: #f1f5ff; }
         .folder-picker-item.selected { background: #e0edff; border-left: 4px solid #3b82f6; }
         .picker-actions { display: flex; gap: 8px; margin-top: 8px; }
+        .checkbox-col { width: 40px; text-align: center; }
     </style>
 </head>
 <body>
@@ -122,6 +127,14 @@
     <input type="file" id="fileInput" multiple>
     <button id="uploadBtn" class="upload-btn"><i class="fas fa-upload"></i>上传文件</button>
     <button id="newFolderBtn" class="folder-btn"><i class="fas fa-folder-plus"></i>新建文件夹</button>
+</div>
+
+<div class="batch-actions">
+    <button id="selectAllBtn"><i class="far fa-check-square"></i> 全选</button>
+    <button id="deselectAllBtn"><i class="far fa-square"></i> 取消全选</button>
+    <button id="batchDeleteBtn" class="danger"><i class="fas fa-trash-alt"></i> 批量删除</button>
+    <button id="batchDownloadBtn"><i class="fas fa-download"></i> 分别下载</button>
+    <button id="batchPackageShareBtn"><i class="fas fa-box"></i> 打包分享</button>
 </div>
 
 <div class="category-tabs">
@@ -206,6 +219,7 @@
         </div>
     </div>
 </div>
+
 <div id="versionModal" class="modal">
     <div class="modal-content">
         <span class="close" onclick="closeVersionModal()">&times;</span>
@@ -213,6 +227,7 @@
         <div id="versionListContainer"></div>
     </div>
 </div>
+
 <div id="shareModal" class="modal">
     <div class="modal-content">
         <span class="close" onclick="closeShareModal()">&times;</span>
@@ -220,6 +235,21 @@
         <div id="shareContent"></div>
     </div>
 </div>
+
+<div id="packageShareModal" class="modal">
+    <div class="modal-content">
+        <span class="close" onclick="closePackageShareModal()">&times;</span>
+        <h3>创建打包分享</h3>
+        <div id="packageShareContent">
+            <p>ZIP文件名：<input type="text" id="packageZipName" placeholder="例如：项目资料.zip"></p>
+            <p>提取码（可选）：<input type="text" id="packagePassword" placeholder="留空则无需密码"></p>
+            <p>有效期天数（可选）：<input type="number" id="packageExpireDays" min="1" placeholder="留空则永久"></p>
+            <button onclick="submitPackageShare()">生成打包分享链接</button>
+            <div id="packageShareResult" style="margin-top:15px;"></div>
+        </div>
+    </div>
+</div>
+
 <div id="confirmModal" class="modal">
     <div class="confirm-dialog">
         <p id="confirmMessage">确定要执行此操作吗？</p>
@@ -227,12 +257,14 @@
         <button id="confirmNo">取消</button>
     </div>
 </div>
+
 <div id="previewModal" class="modal">
     <div class="modal-content preview-modal-content">
         <span class="close" onclick="closePreviewModal()">&times;</span>
         <iframe id="previewFrame" class="preview-iframe"></iframe>
     </div>
 </div>
+
 <div id="imagePreviewModal" class="modal">
     <div class="modal-content image-preview-content">
         <span class="close" onclick="closeImagePreview()">&times;</span>
@@ -263,6 +295,8 @@
     let searchMode = false;
     let searchKeyword = '';
     let searchCategory = '';
+
+    let selectedFileIds = new Set();
 
     function parseLocalTime(dateStr) {
         if (!dateStr) return '';
@@ -318,18 +352,27 @@
     document.getElementById('calibrateSpaceBtn').onclick = calibrateSpace;
 
     function updateHeader() {
+        let headerRow = '<tr><th class="checkbox-col"><input type="checkbox" id="selectAllCheckbox" title="全选/取消"></th>';
         if (currentView === 'folder' && !searchMode) {
-            let headerRow = '<tr><th>文件名</th><th>大小</th><th>上传时间</th><th>操作</th></tr>';
-            document.getElementById('tableHeader').innerHTML = headerRow;
+            headerRow += '<th>文件名</th><th>大小</th><th>上传时间</th><th>操作</th></tr>';
         } else {
-            let headerRow = '<tr><th>文件名</th><th>大小</th><th>所在位置</th><th>上传时间</th><th>操作</th></tr>';
-            document.getElementById('tableHeader').innerHTML = headerRow;
+            headerRow += '<th>文件名</th><th>大小</th><th>所在位置</th><th>上传时间</th><th>操作</th></tr>';
         }
+        document.getElementById('tableHeader').innerHTML = headerRow;
+        document.getElementById('selectAllCheckbox').onchange = function(e) {
+            const checked = e.target.checked;
+            document.querySelectorAll('.file-checkbox').forEach(cb => {
+                cb.checked = checked;
+                const id = parseInt(cb.dataset.id);
+                if (checked) selectedFileIds.add(id); else selectedFileIds.delete(id);
+            });
+        };
     }
 
     function navigateTo(parentId) {
         currentParentId = parentId;
         updateBreadcrumb();
+        selectedFileIds.clear();
         if (!searchMode && currentView === 'folder') {
             loadFileList();
         } else {
@@ -379,6 +422,7 @@
         searchMode = true;
         searchKeyword = keyword;
         searchCategory = category;
+        selectedFileIds.clear();
         updateBreadcrumb();
         updateHeader();
 
@@ -399,6 +443,7 @@
         searchMode = false;
         searchKeyword = '';
         searchCategory = '';
+        selectedFileIds.clear();
         switchView(currentView, currentCategory);
     }
 
@@ -414,27 +459,41 @@
         tbody.innerHTML = '';
         files.forEach(file => {
             const row = tbody.insertRow();
+            const checkboxCell = row.insertCell(0);
             const isFolder = (file.fileSize === 0 && !file.filePath);
+            if (!isFolder) {
+                const cb = document.createElement('input');
+                cb.type = 'checkbox';
+                cb.className = 'file-checkbox';
+                cb.dataset.id = file.id;
+                cb.checked = selectedFileIds.has(file.id);
+                cb.onchange = function() {
+                    if (cb.checked) selectedFileIds.add(file.id); else selectedFileIds.delete(file.id);
+                };
+                checkboxCell.appendChild(cb);
+            } else {
+                checkboxCell.innerHTML = '';
+            }
             let nameHtml = file.fileName;
             if (isFolder) {
                 nameHtml = `<i class="fas fa-folder folder-icon"></i> ` + file.fileName;
             } else {
                 nameHtml = `<i class="fas fa-file"></i> ` + file.fileName;
             }
-            const nameCell = row.insertCell(0);
+            const nameCell = row.insertCell(1);
             nameCell.innerHTML = nameHtml;
             if (isFolder && currentView === 'folder' && !searchMode) {
                 nameCell.style.cursor = 'pointer';
                 nameCell.onclick = () => navigateTo(file.id);
             }
-            row.insertCell(1).innerText = isFolder ? '-' : formatSize(file.fileSize);
+            row.insertCell(2).innerText = isFolder ? '-' : formatSize(file.fileSize);
             if (currentView === 'category' || searchMode) {
-                row.insertCell(2).innerText = file.location || '根目录';
-                row.insertCell(3).innerText = parseLocalTime(file.createdAt);
+                row.insertCell(3).innerText = file.location || '根目录';
+                row.insertCell(4).innerText = parseLocalTime(file.createdAt);
             } else {
-                row.insertCell(2).innerText = parseLocalTime(file.createdAt);
+                row.insertCell(3).innerText = parseLocalTime(file.createdAt);
             }
-            const actions = row.insertCell((currentView === 'category' || searchMode) ? 4 : 3);
+            const actions = row.insertCell((currentView === 'category' || searchMode) ? 5 : 4);
             if (!isFolder) {
                 const previewBtn = document.createElement('button');
                 previewBtn.className = 'action-btn';
@@ -472,6 +531,7 @@
     }
 
     function refreshCurrentView() {
+        selectedFileIds.clear();
         if (searchMode) {
             performSearch();
         } else if (currentView === 'folder') {
@@ -485,6 +545,7 @@
         currentView = view;
         currentCategory = category || '';
         searchMode = false;
+        selectedFileIds.clear();
         document.getElementById('searchKeyword').value = '';
         document.getElementById('searchCategory').value = '';
         document.querySelectorAll('.category-tab').forEach(tab => {
@@ -903,14 +964,52 @@
             })
             .catch(err => showToast('生成分享失败：' + err));
     }
+
+    function closePackageShareModal() {
+        document.getElementById('packageShareModal').style.display = 'none';
+    }
+
+    function submitPackageShare() {
+        if (selectedFileIds.size === 0) {
+            showToast('请至少选择一个文件');
+            return;
+        }
+        const zipName = document.getElementById('packageZipName').value.trim() || '打包文件.zip';
+        const password = document.getElementById('packagePassword').value;
+        const expireDays = document.getElementById('packageExpireDays').value;
+        const params = new URLSearchParams();
+        selectedFileIds.forEach(id => params.append('fileIds', id));
+        if (zipName) params.append('zipName', zipName);
+        if (password) params.append('password', password);
+        if (expireDays) params.append('expireDays', expireDays);
+        fetch('/api/file/create-package-share', { method: 'POST', body: params })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    const share = data.share;
+                    const link = window.location.origin + '/s/' + share.shareCode;
+                    document.getElementById('packageShareResult').innerHTML = `
+                        <p>分享链接：<input type="text" value="${link}" readonly style="width:80%"></p>
+                        <p>${share.password ? '提取码：' + share.password : '无提取码'}</p>
+                        <button onclick="navigator.clipboard.writeText('${link}')">复制链接</button>
+                    `;
+                    showToast('打包分享创建成功');
+                } else {
+                    showToast(data.message);
+                }
+            })
+            .catch(err => showToast('创建失败：' + err));
+    }
+
     window.onclick = function(event) {
         if (event.target.classList.contains('modal')) {
             if (event.target.id === 'imagePreviewModal') closeImagePreview();
-            else if (event.target.id !== 'uploadSetupModal' && event.target.id !== 'folderPickerModal') {
+            else if (event.target.id !== 'uploadSetupModal' && event.target.id !== 'folderPickerModal' && event.target.id !== 'packageShareModal') {
                 event.target.style.display = 'none';
             }
         }
     }
+
     function logoutAndClose() {
         showConfirm('确定退出并关闭页面吗？', function() {
             fetch('/api/user/logout').then(() => { window.close(); setTimeout(() => { window.location.href = '/login'; }, 100); });
@@ -941,6 +1040,56 @@
             })
             .catch(err => console.error('获取用户信息出错:', err));
     }
+
+    document.getElementById('selectAllBtn').onclick = function() {
+        document.querySelectorAll('.file-checkbox').forEach(cb => {
+            cb.checked = true;
+            selectedFileIds.add(parseInt(cb.dataset.id));
+        });
+    };
+    document.getElementById('deselectAllBtn').onclick = function() {
+        document.querySelectorAll('.file-checkbox').forEach(cb => {
+            cb.checked = false;
+            selectedFileIds.delete(parseInt(cb.dataset.id));
+        });
+    };
+    document.getElementById('batchDeleteBtn').onclick = function() {
+        if (selectedFileIds.size === 0) {
+            showToast('请至少选择一个文件');
+            return;
+        }
+        showConfirm(`确定要删除选中的 ${selectedFileIds.size} 个文件吗？`, function() {
+            const params = new URLSearchParams();
+            selectedFileIds.forEach(id => params.append('fileIds', id));
+            fetch('/api/file/batch-delete', { method: 'POST', body: params })
+                .then(res => res.text())
+                .then(msg => {
+                    showToast(msg);
+                    refreshCurrentView();
+                    loadSpaceInfo();
+                });
+        });
+    };
+    document.getElementById('batchDownloadBtn').onclick = function() {
+        if (selectedFileIds.size === 0) {
+            showToast('请至少选择一个文件');
+            return;
+        }
+        selectedFileIds.forEach(id => {
+            window.open('/api/file/download?fileId=' + id, '_blank');
+        });
+    };
+    document.getElementById('batchPackageShareBtn').onclick = function() {
+        if (selectedFileIds.size === 0) {
+            showToast('请至少选择一个文件');
+            return;
+        }
+        document.getElementById('packageZipName').value = '';
+        document.getElementById('packagePassword').value = '';
+        document.getElementById('packageExpireDays').value = '';
+        document.getElementById('packageShareResult').innerHTML = '';
+        document.getElementById('packageShareModal').style.display = 'block';
+    };
 
     fetchUserInfo();
     loadSpaceInfo();

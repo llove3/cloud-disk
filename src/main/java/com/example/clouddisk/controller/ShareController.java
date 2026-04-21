@@ -7,7 +7,6 @@ import com.example.clouddisk.service.FileService;
 import com.example.clouddisk.service.ShareService;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.core.io.FileSystemResource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -34,12 +33,13 @@ public class ShareController {
     public Share createShare(@RequestParam Long fileId,
                              @RequestParam(required = false) String password,
                              @RequestParam(required = false) Integer expireDays,
+                             @RequestParam(required = false) Integer maxVisits,
                              HttpSession session) {
         User user = (User) session.getAttribute("user");
         if (user == null) {
             throw new RuntimeException("请先登录");
         }
-        return shareService.createShare(user.getId(), fileId, password, expireDays);
+        return shareService.createShare(user.getId(), fileId, password, expireDays, maxVisits);
     }
 
     @GetMapping("/api/share/list")
@@ -94,11 +94,12 @@ public class ShareController {
     public String updateShare(@RequestParam Long shareId,
                               @RequestParam(required = false) String password,
                               @RequestParam(required = false) Integer expireDays,
+                              @RequestParam(required = false) Integer maxVisits,
                               HttpSession session) {
         User user = (User) session.getAttribute("user");
         if (user == null) return "请先登录";
         try {
-            shareService.updateShare(shareId, user.getId(), password, expireDays);
+            shareService.updateShare(shareId, user.getId(), password, expireDays, maxVisits);
             return "更新成功";
         } catch (Exception e) {
             return e.getMessage();

@@ -27,7 +27,6 @@ public class CloudDiskApplication {
 		String port = environment.getProperty("server.port", "8080");
 		String url = "http://localhost:" + port + "/login";
 
-		// 稍微延迟一下，确保 Web 容器完全就绪
 		try {
 			Thread.sleep(800);
 		} catch (InterruptedException ignored) {

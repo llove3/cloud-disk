@@ -43,7 +43,7 @@ public class ShareService {
         return sb.toString();
     }
 
-    public Share createShare(Long userId, Long fileId, String password, Integer expireDays) {
+    public Share createShare(Long userId, Long fileId, String password, Integer expireDays, Integer maxVisits) {
         FileInfo file = fileMapper.findByIdAndUserId(fileId, userId);
         if (file == null) {
             throw new RuntimeException("文件不存在或无权分享");
@@ -60,12 +60,13 @@ public class ShareService {
         share.setPassword(password != null && !password.isEmpty() ? password : null);
         share.setExpireTime(expireTime);
         share.setIsPackage(false);
+        share.setMaxVisits(maxVisits);
         shareMapper.insert(share);
         return share;
     }
 
     @Transactional
-    public Share createPackageShare(Long userId, List<Long> fileIds, String zipName, String password, Integer expireDays) throws IOException {
+    public Share createPackageShare(Long userId, List<Long> fileIds, String zipName, String password, Integer expireDays, Integer maxVisits) throws IOException {
         if (fileIds == null || fileIds.isEmpty()) {
             throw new RuntimeException("请至少选择一个文件");
         }
@@ -118,6 +119,7 @@ public class ShareService {
         share.setPassword(password != null && !password.isEmpty() ? password : null);
         share.setExpireTime(expireTime);
         share.setIsPackage(true);
+        share.setMaxVisits(maxVisits);
         shareMapper.insert(share);
         return share;
     }
@@ -130,6 +132,9 @@ public class ShareService {
         }
         if (share.getExpireTime() != null && share.getExpireTime().before(new Date())) {
             throw new RuntimeException("分享链接已过期");
+        }
+        if (share.getMaxVisits() != null && share.getVisitCount() >= share.getMaxVisits()) {
+            throw new RuntimeException("分享链接已达到最大访问次数");
         }
         if (share.getPassword() != null && !share.getPassword().equals(inputPassword)) {
             throw new RuntimeException("提取码错误");
@@ -156,7 +161,7 @@ public class ShareService {
     }
 
     @Transactional
-    public void updateShare(Long shareId, Long userId, String password, Integer expireDays) {
+    public void updateShare(Long shareId, Long userId, String password, Integer expireDays, Integer maxVisits) {
         Share share = shareMapper.findById(shareId);
         if (share == null || !share.getUserId().equals(userId)) {
             throw new RuntimeException("无权修改此分享");
@@ -168,6 +173,9 @@ public class ShareService {
             share.setExpireTime(new Date(System.currentTimeMillis() + expireDays * 24L * 60 * 60 * 1000));
         } else if (expireDays != null && expireDays == 0) {
             share.setExpireTime(null);
+        }
+        if (maxVisits != null) {
+            share.setMaxVisits(maxVisits);
         }
         shareMapper.update(share);
     }

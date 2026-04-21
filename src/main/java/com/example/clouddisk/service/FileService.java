@@ -130,17 +130,44 @@ public class FileService {
     }
 
     public List<FileInfo> listFiles(Long userId, Long parentId) {
-        return listFiles(userId, parentId, null);
+        return listFiles(userId, parentId, null, "name", "asc");
     }
 
-    public List<FileInfo> listFiles(Long userId, Long parentId, String category) {
+    public List<FileInfo> listFiles(Long userId, Long parentId, String category, String sortBy, String order) {
         List<FileInfo> files = fileMapper.findByUserIdAndParentId(userId, parentId);
-        if (category == null || category.isEmpty()) {
-            return files;
+        if (category != null && !category.isEmpty()) {
+            files = files.stream()
+                    .filter(file -> file.getFileSize() > 0 && matchesCategory(file.getFileName(), category))
+                    .collect(Collectors.toList());
         }
-        return files.stream()
-                .filter(file -> file.getFileSize() > 0 && matchesCategory(file.getFileName(), category))
-                .collect(Collectors.toList());
+        Comparator<FileInfo> comparator = getComparator(sortBy, order);
+        files.sort(comparator);
+        return files;
+    }
+
+    private Comparator<FileInfo> getComparator(String sortBy, String order) {
+        Comparator<FileInfo> comparator;
+        switch (sortBy) {
+            case "size":
+                comparator = Comparator.comparing(FileInfo::getFileSize);
+                break;
+            case "time":
+                comparator = Comparator.comparing(FileInfo::getCreatedAt);
+                break;
+            default:
+                comparator = Comparator.comparing(FileInfo::getFileName, String.CASE_INSENSITIVE_ORDER);
+        }
+        if ("desc".equalsIgnoreCase(order)) {
+            comparator = comparator.reversed();
+        }
+        Comparator<FileInfo> folderFirst = (f1, f2) -> {
+            boolean f1IsFolder = (f1.getFileSize() == 0 && (f1.getFilePath() == null || f1.getFilePath().isEmpty()));
+            boolean f2IsFolder = (f2.getFileSize() == 0 && (f2.getFilePath() == null || f2.getFilePath().isEmpty()));
+            if (f1IsFolder && !f2IsFolder) return -1;
+            if (!f1IsFolder && f2IsFolder) return 1;
+            return 0;
+        };
+        return folderFirst.thenComparing(comparator);
     }
 
     private boolean matchesCategory(String fileName, String category) {
@@ -354,6 +381,40 @@ public class FileService {
         return baos.toByteArray();
     }
 
+    public byte[] downloadFolderAsZip(Long folderId, Long userId) throws IOException {
+        FileInfo folder = fileMapper.findByIdAndUserId(folderId, userId);
+        if (folder == null || folder.getFileSize() != 0 || !folder.getFilePath().isEmpty()) {
+            throw new RuntimeException("文件夹不存在或无权访问");
+        }
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        try (ZipOutputStream zos = new ZipOutputStream(baos)) {
+            addFolderToZip(zos, folder, userId, "");
+        }
+        return baos.toByteArray();
+    }
+
+    private void addFolderToZip(ZipOutputStream zos, FileInfo folder, Long userId, String parentPath) throws IOException {
+        String folderPath = parentPath + folder.getFileName() + "/";
+        ZipEntry folderEntry = new ZipEntry(folderPath);
+        zos.putNextEntry(folderEntry);
+        zos.closeEntry();
+
+        List<FileInfo> children = fileMapper.findByUserIdAndParentId(userId, folder.getId());
+        for (FileInfo child : children) {
+            if (child.getFileSize() == 0 && child.getFilePath().isEmpty()) {
+                addFolderToZip(zos, child, userId, folderPath);
+            } else {
+                Path filePath = Paths.get(child.getFilePath());
+                if (Files.exists(filePath)) {
+                    ZipEntry fileEntry = new ZipEntry(folderPath + child.getFileName());
+                    zos.putNextEntry(fileEntry);
+                    Files.copy(filePath, zos);
+                    zos.closeEntry();
+                }
+            }
+        }
+    }
+
     @Transactional
     public void renameFile(Long fileId, Long userId, String newName) {
         FileInfo file = fileMapper.findByIdAndUserId(fileId, userId);
@@ -390,5 +451,12 @@ public class FileService {
         }
         file.setParentId(targetParentId);
         fileMapper.update(file);
+    }
+
+    @Transactional
+    public void batchMove(List<Long> fileIds, Long userId, Long targetParentId) {
+        for (Long fileId : fileIds) {
+            moveFile(fileId, userId, targetParentId);
+        }
     }
 }

@@ -17,6 +17,7 @@ public class Share {
     private String fileName;
     private Integer visitCount;
     private Boolean isPackage;
+    private Integer maxVisits;
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -38,4 +39,6 @@ public class Share {
     public void setVisitCount(Integer visitCount) { this.visitCount = visitCount; }
     public Boolean getIsPackage() { return isPackage; }
     public void setIsPackage(Boolean isPackage) { this.isPackage = isPackage; }
+    public Integer getMaxVisits() { return maxVisits; }
+    public void setMaxVisits(Integer maxVisits) { this.maxVisits = maxVisits; }
 }

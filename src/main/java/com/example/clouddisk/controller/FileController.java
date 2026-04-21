@@ -73,12 +73,14 @@ public class FileController {
     @GetMapping("/list")
     public List<FileInfo> list(@RequestParam(value = "parentId", defaultValue = "0") Long parentId,
                                @RequestParam(value = "category", required = false) String category,
+                               @RequestParam(value = "sortBy", defaultValue = "name") String sortBy,
+                               @RequestParam(value = "order", defaultValue = "asc") String order,
                                HttpSession session) {
         User user = (User) session.getAttribute("user");
         if (user == null) {
             return null;
         }
-        return fileService.listFiles(user.getId(), parentId, category);
+        return fileService.listFiles(user.getId(), parentId, category, sortBy, order);
     }
 
     @GetMapping("/category/list")
@@ -122,6 +124,25 @@ public class FileController {
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename*=UTF-8''" + encodedFileName)
                 .contentType(MediaType.APPLICATION_OCTET_STREAM)
                 .body(data);
+    }
+
+    @GetMapping("/download-folder")
+    public ResponseEntity<byte[]> downloadFolder(@RequestParam Long folderId, HttpSession session) throws IOException {
+        User user = (User) session.getAttribute("user");
+        if (user == null) {
+            return ResponseEntity.status(401).build();
+        }
+        FileInfo folder = fileService.getFile(folderId, user.getId());
+        if (folder == null || folder.getFileSize() != 0) {
+            return ResponseEntity.status(404).build();
+        }
+        byte[] zipData = fileService.downloadFolderAsZip(folderId, user.getId());
+        String zipName = folder.getFileName() + ".zip";
+        String encodedName = URLEncoder.encode(zipName, StandardCharsets.UTF_8).replaceAll("\\+", "%20");
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename*=UTF-8''" + encodedName)
+                .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                .body(zipData);
     }
 
     @PostMapping("/delete")
@@ -241,6 +262,7 @@ public class FileController {
                                                   @RequestParam(required = false) String zipName,
                                                   @RequestParam(required = false) String password,
                                                   @RequestParam(required = false) Integer expireDays,
+                                                  @RequestParam(required = false) Integer maxVisits,
                                                   HttpSession session) {
         Map<String, Object> result = new HashMap<>();
         User user = (User) session.getAttribute("user");
@@ -250,7 +272,7 @@ public class FileController {
             return result;
         }
         try {
-            Share share = shareService.createPackageShare(user.getId(), fileIds, zipName, password, expireDays);
+            Share share = shareService.createPackageShare(user.getId(), fileIds, zipName, password, expireDays, maxVisits);
             result.put("success", true);
             result.put("message", "打包分享创建成功");
             result.put("share", share);
@@ -329,6 +351,28 @@ public class FileController {
             fileService.moveFile(fileId, user.getId(), targetParentId);
             result.put("success", true);
             result.put("message", "移动成功");
+        } catch (Exception e) {
+            result.put("success", false);
+            result.put("message", e.getMessage());
+        }
+        return result;
+    }
+
+    @PostMapping("/batch-move")
+    public Map<String, Object> batchMove(@RequestParam List<Long> fileIds,
+                                         @RequestParam Long targetParentId,
+                                         HttpSession session) {
+        Map<String, Object> result = new HashMap<>();
+        User user = (User) session.getAttribute("user");
+        if (user == null) {
+            result.put("success", false);
+            result.put("message", "请先登录");
+            return result;
+        }
+        try {
+            fileService.batchMove(fileIds, user.getId(), targetParentId);
+            result.put("success", true);
+            result.put("message", "批量移动成功");
         } catch (Exception e) {
             result.put("success", false);
             result.put("message", e.getMessage());

@@ -29,6 +29,7 @@
         .action-btn { background: none; border: 1px solid #e2e8f0; padding: 4px 8px; border-radius: 16px; font-size: 12px; font-weight: 500; color: #475569; cursor: pointer; transition: all 0.15s; margin-right: 4px; display: inline-flex; align-items: center; gap: 3px; }
         .action-btn:hover { background: #3b82f6; border-color: #3b82f6; color: white; }
         .expired-tag { background: #fee2e2; color: #b91c1c; padding: 2px 10px; border-radius: 20px; font-size: 12px; font-weight: 500; }
+        .limit-tag { background: #fef3c7; color: #b45309; padding: 2px 10px; border-radius: 20px; font-size: 12px; font-weight: 500; }
         .modal { display: none; position: fixed; z-index: 999; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.4); }
         .modal-content { background: white; margin: 5% auto; padding: 28px; border-radius: 28px; width: 480px; max-width: 90%; box-shadow: 0 30px 60px rgba(0,0,0,0.12); }
         .modal-content h3 { font-size: 22px; margin-bottom: 20px; color: #0f172a; }
@@ -117,6 +118,8 @@
         <input type="text" id="editSharePassword" placeholder="留空则无密码">
         <label>有效期天数（留空则永久）</label>
         <input type="number" id="editShareExpireDays" min="1" placeholder="留空则永久">
+        <label>最大访问次数（留空则不限制）</label>
+        <input type="number" id="editShareMaxVisits" min="1" placeholder="留空则不限制">
         <div class="modal-actions">
             <button onclick="closeEditModal()" style="background:#f1f5f9;">取消</button>
             <button onclick="submitEditShare()" style="background:#3b82f6; color:white;">保存</button>
@@ -176,12 +179,22 @@
         return new Date(expireTime) < new Date();
     }
 
+    function getVisitStatus(share) {
+        if (share.maxVisits && share.visitCount >= share.maxVisits) {
+            return '<span class="expired-tag">已达上限</span>';
+        } else if (share.maxVisits) {
+            return `${share.visitCount} / ${share.maxVisits}`;
+        } else {
+            return share.visitCount || 0;
+        }
+    }
+
     function loadShares() {
         fetch('/api/share/list')
             .then(res => res.json())
             .then(shares => {
-                activeShares = shares.filter(s => !isExpired(s.expireTime));
-                expiredShares = shares.filter(s => isExpired(s.expireTime));
+                activeShares = shares.filter(s => !isExpired(s.expireTime) && (!s.maxVisits || s.visitCount < s.maxVisits));
+                expiredShares = shares.filter(s => isExpired(s.expireTime) || (s.maxVisits && s.visitCount >= s.maxVisits));
                 renderActiveShares();
                 renderExpiredShares();
             });
@@ -240,7 +253,7 @@
         row.insertCell(1).innerText = share.fileName || '未知文件';
         row.insertCell(2).innerHTML = `<code>${share.shareCode}</code>`;
         row.insertCell(3).innerText = share.password || '无';
-        row.insertCell(4).innerText = share.visitCount || 0;
+        row.insertCell(4).innerHTML = getVisitStatus(share);
         row.insertCell(5).innerText = share.expireTime ? parseLocalTime(share.expireTime) : '永久';
         row.insertCell(6).innerText = parseLocalTime(share.createdAt);
 
@@ -371,6 +384,7 @@
         editingShareId = share.id;
         document.getElementById('editSharePassword').value = share.password || '';
         document.getElementById('editShareExpireDays').value = '';
+        document.getElementById('editShareMaxVisits').value = share.maxVisits || '';
         document.getElementById('editShareModal').style.display = 'block';
     }
 
@@ -383,10 +397,12 @@
         if (!editingShareId) return;
         const password = document.getElementById('editSharePassword').value.trim();
         const expireDays = document.getElementById('editShareExpireDays').value;
+        const maxVisits = document.getElementById('editShareMaxVisits').value;
         const params = new URLSearchParams();
         params.append('shareId', editingShareId);
         if (password) params.append('password', password);
         if (expireDays) params.append('expireDays', expireDays);
+        if (maxVisits) params.append('maxVisits', maxVisits);
         fetch('/api/share/update', { method: 'POST', body: params })
             .then(res => res.text())
             .then(msg => {

@@ -7,7 +7,7 @@ import java.util.List;
 @Mapper
 public interface ShareMapper {
 
-    @Insert("INSERT INTO share(file_id, user_id, share_code, password, expire_time, visit_count, is_package) VALUES(#{fileId}, #{userId}, #{shareCode}, #{password}, #{expireTime}, 0, #{isPackage})")
+    @Insert("INSERT INTO share(file_id, user_id, share_code, password, expire_time, visit_count, is_package, max_visits) VALUES(#{fileId}, #{userId}, #{shareCode}, #{password}, #{expireTime}, 0, #{isPackage}, #{maxVisits})")
     @Options(useGeneratedKeys = true, keyProperty = "id")
     int insert(Share share);
 
@@ -26,6 +26,6 @@ public interface ShareMapper {
     @Update("UPDATE share SET visit_count = visit_count + 1 WHERE share_code = #{code}")
     int incrementVisitCount(@Param("code") String code);
 
-    @Update("UPDATE share SET password = #{password}, expire_time = #{expireTime} WHERE id = #{id}")
+    @Update("UPDATE share SET password = #{password}, expire_time = #{expireTime}, max_visits = #{maxVisits} WHERE id = #{id}")
     int update(Share share);
 }

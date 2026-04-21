@@ -25,4 +25,7 @@ public interface ShareMapper {
 
     @Update("UPDATE share SET visit_count = visit_count + 1 WHERE share_code = #{code}")
     int incrementVisitCount(@Param("code") String code);
+
+    @Update("UPDATE share SET password = #{password}, expire_time = #{expireTime} WHERE id = #{id}")
+    int update(Share share);
 }

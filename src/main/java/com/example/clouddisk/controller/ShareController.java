@@ -89,4 +89,19 @@ public class ShareController {
             return ResponseEntity.internalServerError().body("文件读取失败");
         }
     }
+
+    @PostMapping("/api/share/update")
+    public String updateShare(@RequestParam Long shareId,
+                              @RequestParam(required = false) String password,
+                              @RequestParam(required = false) Integer expireDays,
+                              HttpSession session) {
+        User user = (User) session.getAttribute("user");
+        if (user == null) return "请先登录";
+        try {
+            shareService.updateShare(shareId, user.getId(), password, expireDays);
+            return "更新成功";
+        } catch (Exception e) {
+            return e.getMessage();
+        }
+    }
 }

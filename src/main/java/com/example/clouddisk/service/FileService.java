@@ -353,4 +353,20 @@ public class FileService {
         }
         return baos.toByteArray();
     }
+
+    @Transactional
+    public void renameFile(Long fileId, Long userId, String newName) {
+        FileInfo file = fileMapper.findByIdAndUserId(fileId, userId);
+        if (file == null) {
+            throw new RuntimeException("文件不存在或无权访问");
+        }
+        String safeName = sanitizeFileName(newName);
+        FileInfo existing = fileMapper.findByUserIdAndParentIdAndFileName(userId, file.getParentId(), safeName);
+        if (existing != null && !existing.getId().equals(fileId)) {
+            throw new RuntimeException("该目录下已存在同名文件或文件夹");
+        }
+        file.setFileName(safeName);
+        fileMapper.update(file);
+    }
+
 }

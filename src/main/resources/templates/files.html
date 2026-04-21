@@ -308,7 +308,6 @@
             pickerNewFolderCallback = null;
             closeNewFolderModal();
         } else {
-            // 原有主界面新建文件夹逻辑
             const formData = new FormData();
             formData.append('folderName', folderName);
             formData.append('parentId', currentParentId);
@@ -733,7 +732,6 @@
         document.getElementById('previewFrame').src = '';
     }
 
-    // ================= 新建文件夹（模态框） =================
     function openNewFolderModal() {
         document.getElementById('newFolderNameInput').value = '';
         document.getElementById('newFolderModal').style.display = 'block';
@@ -767,7 +765,6 @@
     document.getElementById('newFolderCancel').onclick = closeNewFolderModal;
     document.getElementById('newFolderBtn').onclick = openNewFolderModal;
 
-    // ================= 上传目标文件夹选择器 =================
     function openUploadFolderPicker(files) {
         pendingUploadFiles = files;
         uploadPickerCurrentParentId = 0;
@@ -874,7 +871,6 @@
         });
     };
 
-    // ================= 上传核心逻辑 =================
     async function checkFileExistsInTarget(fileName, parentId) {
         const resp = await fetch('/api/file/list?parentId=' + parentId);
         const files = await resp.json();
@@ -965,7 +961,6 @@
         loadSpaceInfo();
     };
 
-    // ================= 其他功能 =================
     function openVersionModal(fileId) {
         currentFileIdForVersion = fileId;
         fetch('/api/file/versions?fileId=' + fileId)
@@ -1027,7 +1022,8 @@
         fetch('/api/share/create', { method: 'POST', body: params })
             .then(res => res.json())
             .then(share => {
-                const link = window.location.origin + '/s/' + share.shareCode;
+                const baseUrl = window.location.origin;
+                const link = baseUrl + '/s/' + share.shareCode;
                 const resultDiv = document.getElementById('shareResult');
                 resultDiv.innerHTML = `
                     <p>分享链接：<input type="text" value="${link}" readonly style="width:80%"></p>
@@ -1054,7 +1050,8 @@
             .then(data => {
                 if (data.success) {
                     const share = data.share;
-                    const link = window.location.origin + '/s/' + share.shareCode;
+                    const baseUrl = window.location.origin;
+                    const link = baseUrl + '/s/' + share.shareCode;
                     document.getElementById('packageShareResult').innerHTML = `
                         <p>分享链接：<input type="text" value="${link}" readonly style="width:80%"></p>
                         <p>${share.password ? '提取码：' + share.password : '无提取码'}</p>

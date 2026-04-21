@@ -249,7 +249,8 @@
         copyBtn.className = 'action-btn';
         copyBtn.innerHTML = '<i class="fas fa-copy"></i> 复制';
         copyBtn.onclick = () => {
-            navigator.clipboard.writeText(window.location.origin + '/s/' + share.shareCode);
+            const baseUrl = window.location.origin;
+            navigator.clipboard.writeText(baseUrl + '/s/' + share.shareCode);
             showToast('链接已复制');
         };
         actions.appendChild(copyBtn);
@@ -289,7 +290,6 @@
         }
     }
 
-    // 全选切换逻辑
     document.getElementById('selectAllActiveCheckbox').onchange = function(e) {
         const checked = e.target.checked;
         document.querySelectorAll('.share-checkbox-active').forEach(cb => {

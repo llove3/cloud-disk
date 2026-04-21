@@ -36,7 +36,7 @@ public interface FileMapper {
     @Select("SELECT * FROM file WHERE user_id = #{userId} AND parent_id = #{parentId} AND file_name = #{fileName} AND deleted = FALSE")
     FileInfo findByUserIdAndParentIdAndFileName(@Param("userId") Long userId, @Param("parentId") Long parentId, @Param("fileName") String fileName);
 
-    @Update("UPDATE file SET file_size=#{fileSize}, file_path=#{filePath}, file_md5=#{fileMd5}, version=#{version} WHERE id=#{id}")
+    @Update("UPDATE file SET file_name = #{fileName}, file_size = #{fileSize}, file_path = #{filePath}, file_md5 = #{fileMd5}, version = #{version} WHERE id = #{id}")
     int update(FileInfo file);
 
     @Select("SELECT * FROM file WHERE id = #{id}")

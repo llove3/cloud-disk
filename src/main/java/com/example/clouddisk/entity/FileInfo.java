@@ -14,6 +14,8 @@ public class FileInfo {
     private Long parentId;
     private Integer version;
     private Boolean deleted;
+    private Boolean starred;
+    private String remark;
 
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
     private Date createdAt;
@@ -47,4 +49,8 @@ public class FileInfo {
     public void setCreatedAt(Date createdAt) { this.createdAt = createdAt; }
     public String getLocation() { return location; }
     public void setLocation(String location) { this.location = location; }
+    public Boolean getStarred() { return starred; }
+    public void setStarred(Boolean starred) { this.starred = starred; }
+    public String getRemark() { return remark; }
+    public void setRemark(String remark) { this.remark = remark; }
 }

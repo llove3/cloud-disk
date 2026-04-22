@@ -7,8 +7,8 @@ import java.util.List;
 @Mapper
 public interface FileMapper {
 
-    @Insert("INSERT INTO file(user_id, file_name, file_size, file_path, file_md5, parent_id, version, deleted) " +
-            "VALUES(#{userId}, #{fileName}, #{fileSize}, #{filePath}, #{fileMd5}, #{parentId}, #{version}, #{deleted})")
+    @Insert("INSERT INTO file(user_id, file_name, file_size, file_path, file_md5, parent_id, version, deleted, starred, remark) " +
+            "VALUES(#{userId}, #{fileName}, #{fileSize}, #{filePath}, #{fileMd5}, #{parentId}, #{version}, #{deleted}, #{starred}, #{remark})")
     @Options(useGeneratedKeys = true, keyProperty = "id")
     int insert(FileInfo file);
 
@@ -38,7 +38,7 @@ public interface FileMapper {
     @Select("SELECT * FROM file WHERE user_id = #{userId} AND parent_id = #{parentId} AND file_name = #{fileName} AND deleted = FALSE")
     FileInfo findByUserIdAndParentIdAndFileName(@Param("userId") Long userId, @Param("parentId") Long parentId, @Param("fileName") String fileName);
 
-    @Update("UPDATE file SET file_name = #{fileName}, file_size = #{fileSize}, file_path = #{filePath}, file_md5 = #{fileMd5}, version = #{version}, parent_id = #{parentId} WHERE id = #{id}")
+    @Update("UPDATE file SET file_name = #{fileName}, file_size = #{fileSize}, file_path = #{filePath}, file_md5 = #{fileMd5}, version = #{version}, parent_id = #{parentId}, starred = #{starred}, remark = #{remark} WHERE id = #{id}")
     int update(FileInfo file);
 
     @Select("SELECT * FROM file WHERE id = #{id}")
@@ -61,4 +61,11 @@ public interface FileMapper {
     @Select("SELECT * FROM file WHERE user_id = #{userId} AND deleted = FALSE AND file_size > 0 AND file_name LIKE CONCAT('%', #{keyword}, '%') " +
             "AND (file_path NOT LIKE '%/packages/%' OR file_path = '')")
     List<FileInfo> searchByName(@Param("userId") Long userId, @Param("keyword") String keyword);
+
+    @Select("SELECT * FROM file WHERE user_id = #{userId} AND deleted = FALSE AND starred = TRUE " +
+            "AND (file_path NOT LIKE '%/packages/%' OR file_path = '')")
+    List<FileInfo> findStarredByUserId(@Param("userId") Long userId);
+
+    @Select("SELECT * FROM file WHERE user_id = #{userId} AND deleted = TRUE AND deleted_at < DATE_SUB(NOW(), INTERVAL #{days} DAY)")
+    List<FileInfo> findRecycleFilesOlderThan(@Param("userId") Long userId, @Param("days") Integer days);
 }

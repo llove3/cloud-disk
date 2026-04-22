@@ -168,4 +168,14 @@ public class UserController {
             return "上传失败";
         }
     }
+
+    @PostMapping("/update-recycle-retention")
+    public String updateRecycleRetention(@RequestParam Integer days, HttpSession session) {
+        User user = (User) session.getAttribute("user");
+        if (user == null) return "请先登录";
+        userService.updateRecycleRetentionDays(user.getId(), days);
+        User updated = userService.findById(user.getId());
+        session.setAttribute("user", updated);
+        return "设置成功";
+    }
 }

@@ -2,9 +2,11 @@ package com.example.clouddisk.controller;
 
 import com.example.clouddisk.entity.FileInfo;
 import com.example.clouddisk.entity.Share;
+import com.example.clouddisk.entity.ShareAccessLog;
 import com.example.clouddisk.entity.User;
 import com.example.clouddisk.service.FileService;
 import com.example.clouddisk.service.ShareService;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
@@ -68,9 +70,12 @@ public class ShareController {
     @PostMapping("/s/{code}/verify")
     @ResponseBody
     public ResponseEntity<?> verifyAndDownload(@PathVariable String code,
-                                               @RequestParam(required = false) String password) {
+                                               @RequestParam(required = false) String password,
+                                               HttpServletRequest request) {
+        String ipAddress = request.getRemoteAddr();
+        String userAgent = request.getHeader("User-Agent");
         try {
-            FileInfo file = shareService.getFileByShareCode(code, password);
+            FileInfo file = shareService.getFileByShareCode(code, password, ipAddress, userAgent);
             Path path = Paths.get(file.getFilePath());
             if (!Files.exists(path)) {
                 return ResponseEntity.notFound().build();
@@ -104,5 +109,14 @@ public class ShareController {
         } catch (Exception e) {
             return e.getMessage();
         }
+    }
+
+    @GetMapping("/api/share/access-logs")
+    public List<ShareAccessLog> getAccessLogs(@RequestParam Long shareId, HttpSession session) {
+        User user = (User) session.getAttribute("user");
+        if (user == null) {
+            throw new RuntimeException("请先登录");
+        }
+        return shareService.getAccessLogs(shareId, user.getId());
     }
 }

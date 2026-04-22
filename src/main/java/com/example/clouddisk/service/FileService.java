@@ -106,6 +106,7 @@ public class FileService {
             fileInfo.setParentId(parentId);
             fileInfo.setVersion(1);
             fileInfo.setDeleted(false);
+            fileInfo.setStarred(false);
             fileMapper.insert(fileInfo);
             userMapper.addUsedSpace(userId, fileSize);
         } else {
@@ -351,6 +352,7 @@ public class FileService {
         folder.setParentId(parentId);
         folder.setVersion(1);
         folder.setDeleted(false);
+        folder.setStarred(false);
         fileMapper.insert(folder);
     }
 
@@ -457,6 +459,48 @@ public class FileService {
     public void batchMove(List<Long> fileIds, Long userId, Long targetParentId) {
         for (Long fileId : fileIds) {
             moveFile(fileId, userId, targetParentId);
+        }
+    }
+
+    @Transactional
+    public void toggleStar(Long fileId, Long userId) {
+        FileInfo file = fileMapper.findByIdAndUserId(fileId, userId);
+        if (file == null) {
+            throw new RuntimeException("文件不存在或无权访问");
+        }
+        file.setStarred(!Boolean.TRUE.equals(file.getStarred()));
+        fileMapper.update(file);
+    }
+
+    public List<FileInfo> getStarredFiles(Long userId) {
+        return fileMapper.findStarredByUserId(userId);
+    }
+
+    @Transactional
+    public void updateRemark(Long fileId, Long userId, String remark) {
+        FileInfo file = fileMapper.findByIdAndUserId(fileId, userId);
+        if (file == null) {
+            throw new RuntimeException("文件不存在或无权访问");
+        }
+        file.setRemark(remark);
+        fileMapper.update(file);
+    }
+
+    @Transactional
+    public void autoCleanRecycleBin() {
+        List<User> users = userMapper.findAll();
+        for (User user : users) {
+            Integer days = user.getRecycleRetentionDays();
+            if (days != null && days > 0) {
+                List<FileInfo> oldFiles = fileMapper.findRecycleFilesOlderThan(user.getId(), days);
+                for (FileInfo file : oldFiles) {
+                    try {
+                        permanentDelete(file.getId(), user.getId());
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
         }
     }
 }

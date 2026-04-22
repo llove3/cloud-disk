@@ -14,10 +14,14 @@
         .user-info a { color: #3b82f6; text-decoration: none; font-weight: 500; margin: 0 4px; }
         .avatar-icon { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; border: 1px solid #e2e8f0; cursor: pointer; }
         .nav-link { display: inline-flex; align-items: center; gap: 8px; background: white; padding: 10px 20px; border-radius: 40px; text-decoration: none; color: #3b82f6; font-weight: 500; margin-bottom: 20px; box-shadow: 0 2px 6px rgba(0,0,0,0.02); }
-        .batch-actions { display: flex; gap: 8px; margin-bottom: 16px; }
+        .batch-actions { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; align-items: center; }
         .batch-actions button { background: #f1f5f9; border: 1px solid #e2e8f0; padding: 8px 16px; border-radius: 30px; font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: all 0.15s; }
         .batch-actions button:hover { background: #e2e8f0; }
         .batch-actions button.danger:hover { background: #fee2e2; border-color: #ef4444; color: #b91c1c; }
+        .auto-clean-setting { margin-left: auto; display: flex; align-items: center; gap: 12px; background: white; padding: 6px 16px; border-radius: 40px; border: 1px solid #eef2f6; }
+        .auto-clean-setting span { font-size: 14px; color: #475569; }
+        .auto-clean-setting input { width: 70px; padding: 6px 10px; border: 1px solid #cbd5e1; border-radius: 20px; text-align: center; }
+        .auto-clean-setting button { background: #3b82f6; color: white; border: none; padding: 6px 16px; border-radius: 30px; font-weight: 500; cursor: pointer; }
         .file-table-container { background: white; border-radius: 24px; padding: 8px 0; box-shadow: 0 8px 24px rgba(0,0,0,0.04); border: 1px solid #eef2f6; overflow-x: auto; }
         table { width: 100%; border-collapse: collapse; }
         th { text-align: left; padding: 18px 20px; background: #f8fafc; font-weight: 600; font-size: 14px; color: #475569; border-bottom: 1px solid #e2e8f0; }
@@ -52,6 +56,12 @@
     <button id="toggleSelectAllBtn"><i class="far fa-check-square"></i> 全选</button>
     <button id="batchRestoreBtn"><i class="fas fa-undo-alt"></i> 批量恢复</button>
     <button id="batchDeleteBtn" class="danger"><i class="fas fa-trash"></i> 批量彻底删除</button>
+    <div class="auto-clean-setting">
+        <span><i class="fas fa-clock"></i> 自动清理</span>
+        <input type="number" id="retentionDaysInput" min="0" placeholder="天数" style="width:80px;">
+        <button id="saveRetentionBtn">保存</button>
+        <span style="margin-left:8px; font-size:12px; color:#64748b;">0=不清理</span>
+    </div>
 </div>
 
 <div class="file-table-container">
@@ -247,9 +257,38 @@
         });
     };
 
+    function loadRetentionSetting() {
+        fetch('/api/user/info')
+            .then(res => res.json())
+            .then(user => {
+                if (user && user.recycleRetentionDays !== undefined) {
+                    document.getElementById('retentionDaysInput').value = user.recycleRetentionDays;
+                } else {
+                    document.getElementById('retentionDaysInput').value = 30;
+                }
+            });
+    }
+
+    document.getElementById('saveRetentionBtn').onclick = function() {
+        const days = parseInt(document.getElementById('retentionDaysInput').value);
+        if (isNaN(days) || days < 0) {
+            showToast('请输入有效的天数（0 表示不自动清理）');
+            return;
+        }
+        const params = new URLSearchParams();
+        params.append('days', days);
+        fetch('/api/user/update-recycle-retention', { method: 'POST', body: params })
+            .then(res => res.text())
+            .then(msg => {
+                showToast(msg);
+                loadRetentionSetting();
+            });
+    };
+
     window.onclick = function(event) { if (event.target.classList.contains('modal')) closeConfirm(); }
 
     loadRecycleBin();
+    loadRetentionSetting();
 </script>
 </body>
 </html>

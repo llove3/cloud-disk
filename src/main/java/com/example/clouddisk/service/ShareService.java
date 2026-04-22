@@ -2,7 +2,9 @@ package com.example.clouddisk.service;
 
 import com.example.clouddisk.entity.FileInfo;
 import com.example.clouddisk.entity.Share;
+import com.example.clouddisk.entity.ShareAccessLog;
 import com.example.clouddisk.mapper.FileMapper;
+import com.example.clouddisk.mapper.ShareAccessLogMapper;
 import com.example.clouddisk.mapper.ShareMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -27,6 +29,9 @@ public class ShareService {
 
     @Autowired
     private FileMapper fileMapper;
+
+    @Autowired
+    private ShareAccessLogMapper shareAccessLogMapper;
 
     @Value("${file.upload-dir}")
     private String uploadDir;
@@ -105,6 +110,7 @@ public class ShareService {
         packageFile.setParentId(0L);
         packageFile.setVersion(1);
         packageFile.setDeleted(false);
+        packageFile.setStarred(false);
         fileMapper.insert(packageFile);
 
         String code = generateShareCode();
@@ -125,25 +131,49 @@ public class ShareService {
     }
 
     @Transactional
-    public FileInfo getFileByShareCode(String code, String inputPassword) {
+    public FileInfo getFileByShareCode(String code, String inputPassword, String ipAddress, String userAgent) {
         Share share = shareMapper.findByCode(code);
+        ShareAccessLog log = new ShareAccessLog();
+        log.setShareId(share != null ? share.getId() : null);
+        log.setIpAddress(ipAddress);
+        log.setUserAgent(userAgent);
+
         if (share == null) {
+            log.setSuccess(false);
+            log.setErrorReason("分享链接不存在");
+            shareAccessLogMapper.insert(log);
             throw new RuntimeException("分享链接不存在");
         }
+        log.setShareId(share.getId());
+
         if (share.getExpireTime() != null && share.getExpireTime().before(new Date())) {
+            log.setSuccess(false);
+            log.setErrorReason("分享链接已过期");
+            shareAccessLogMapper.insert(log);
             throw new RuntimeException("分享链接已过期");
         }
         if (share.getMaxVisits() != null && share.getVisitCount() >= share.getMaxVisits()) {
+            log.setSuccess(false);
+            log.setErrorReason("分享链接已达到最大访问次数");
+            shareAccessLogMapper.insert(log);
             throw new RuntimeException("分享链接已达到最大访问次数");
         }
         if (share.getPassword() != null && !share.getPassword().equals(inputPassword)) {
+            log.setSuccess(false);
+            log.setErrorReason("提取码错误");
+            shareAccessLogMapper.insert(log);
             throw new RuntimeException("提取码错误");
         }
         FileInfo file = fileMapper.findById(share.getFileId());
         if (file == null || file.getDeleted()) {
+            log.setSuccess(false);
+            log.setErrorReason("原文件已被删除");
+            shareAccessLogMapper.insert(log);
             throw new RuntimeException("原文件已被删除");
         }
         shareMapper.incrementVisitCount(code);
+        log.setSuccess(true);
+        shareAccessLogMapper.insert(log);
         return file;
     }
 
@@ -178,5 +208,13 @@ public class ShareService {
             share.setMaxVisits(maxVisits);
         }
         shareMapper.update(share);
+    }
+
+    public List<ShareAccessLog> getAccessLogs(Long shareId, Long userId) {
+        Share share = shareMapper.findById(shareId);
+        if (share == null || !share.getUserId().equals(userId)) {
+            throw new RuntimeException("无权查看此分享日志");
+        }
+        return shareAccessLogMapper.findByShareId(shareId);
     }
 }

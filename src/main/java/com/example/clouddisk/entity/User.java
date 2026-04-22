@@ -15,6 +15,7 @@ public class User {
     private Long totalSpace;
     private Long usedSpace;
     private String avatar;
+    private Integer recycleRetentionDays;
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -34,4 +35,6 @@ public class User {
     public void setUsedSpace(Long usedSpace) { this.usedSpace = usedSpace; }
     public String getAvatar() { return avatar; }
     public void setAvatar(String avatar) { this.avatar = avatar; }
+    public Integer getRecycleRetentionDays() { return recycleRetentionDays; }
+    public void setRecycleRetentionDays(Integer recycleRetentionDays) { this.recycleRetentionDays = recycleRetentionDays; }
 }

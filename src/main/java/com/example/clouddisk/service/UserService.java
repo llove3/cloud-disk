@@ -55,6 +55,7 @@ public class UserService {
         user.setEmail(email);
         user.setPassword(encryptedPwd);
         user.setSalt(salt);
+        user.setRecycleRetentionDays(30);
         userMapper.insert(user);
         verificationCodes.remove(email);
         return true;
@@ -138,6 +139,10 @@ public class UserService {
 
     public void updateAvatar(Long userId, String avatarUrl) {
         userMapper.updateAvatar(userId, avatarUrl);
+    }
+
+    public void updateRecycleRetentionDays(Long userId, Integer days) {
+        userMapper.updateRecycleRetentionDays(userId, days);
     }
 
     private String generateSalt() {

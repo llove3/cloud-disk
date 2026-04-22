@@ -379,4 +379,53 @@ public class FileController {
         }
         return result;
     }
+
+    @PostMapping("/toggle-star")
+    public Map<String, Object> toggleStar(@RequestParam Long fileId, HttpSession session) {
+        Map<String, Object> result = new HashMap<>();
+        User user = (User) session.getAttribute("user");
+        if (user == null) {
+            result.put("success", false);
+            result.put("message", "请先登录");
+            return result;
+        }
+        try {
+            fileService.toggleStar(fileId, user.getId());
+            result.put("success", true);
+            result.put("message", "操作成功");
+        } catch (Exception e) {
+            result.put("success", false);
+            result.put("message", e.getMessage());
+        }
+        return result;
+    }
+
+    @GetMapping("/starred")
+    public List<FileInfo> getStarredFiles(HttpSession session) {
+        User user = (User) session.getAttribute("user");
+        if (user == null) return null;
+        return fileService.getStarredFiles(user.getId());
+    }
+
+    @PostMapping("/update-remark")
+    public Map<String, Object> updateRemark(@RequestParam Long fileId,
+                                            @RequestParam(required = false) String remark,
+                                            HttpSession session) {
+        Map<String, Object> result = new HashMap<>();
+        User user = (User) session.getAttribute("user");
+        if (user == null) {
+            result.put("success", false);
+            result.put("message", "请先登录");
+            return result;
+        }
+        try {
+            fileService.updateRemark(fileId, user.getId(), remark);
+            result.put("success", true);
+            result.put("message", "备注更新成功");
+        } catch (Exception e) {
+            result.put("success", false);
+            result.put("message", e.getMessage());
+        }
+        return result;
+    }
 }

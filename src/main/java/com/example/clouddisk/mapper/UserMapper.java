@@ -3,9 +3,11 @@ package com.example.clouddisk.mapper;
 import com.example.clouddisk.entity.User;
 import org.apache.ibatis.annotations.*;
 
+import java.util.List;
+
 @Mapper
 public interface UserMapper {
-    @Insert("INSERT INTO user(username, email, password, salt) VALUES(#{username}, #{email}, #{password}, #{salt})")
+    @Insert("INSERT INTO user(username, email, password, salt, recycle_retention_days) VALUES(#{username}, #{email}, #{password}, #{salt}, #{recycleRetentionDays})")
     @Options(useGeneratedKeys = true, keyProperty = "id")
     int insert(User user);
 
@@ -39,4 +41,10 @@ public interface UserMapper {
 
     @Update("UPDATE user SET avatar = #{avatar} WHERE id = #{userId}")
     int updateAvatar(@Param("userId") Long userId, @Param("avatar") String avatar);
+
+    @Update("UPDATE user SET recycle_retention_days = #{days} WHERE id = #{userId}")
+    int updateRecycleRetentionDays(@Param("userId") Long userId, @Param("days") Integer days);
+
+    @Select("SELECT * FROM user")
+    List<User> findAll();
 }

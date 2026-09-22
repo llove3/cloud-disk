@@ -13,6 +13,7 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+import java.util.Locale;
 
 @RestController
 @RequestMapping("/api/user")
@@ -143,15 +144,15 @@ public class UserController {
         String originalFilename = file.getOriginalFilename();
         String ext = "";
         if (originalFilename != null && originalFilename.contains(".")) {
-            ext = originalFilename.substring(originalFilename.lastIndexOf("."));
+            ext = originalFilename.substring(originalFilename.lastIndexOf(".")).toLowerCase(Locale.ROOT);
         }
-        if (!ext.matches(".(jpg|jpeg|png|gif)")) {
+        if (!ext.matches("\\.(jpg|jpeg|png|gif)")) {
             return "仅支持 jpg, jpeg, png, gif 格式";
         }
         if (file.getSize() > 2 * 1024 * 1024) {
             return "头像大小不能超过2MB";
         }
-        File dir = new File(uploadDir, "avatars");
+        File dir = new File(uploadDir, "avatars").getAbsoluteFile();
         if (!dir.exists()) dir.mkdirs();
         String newFileName = user.getId() + "_" + UUID.randomUUID().toString() + ext;
         File dest = new File(dir, newFileName);

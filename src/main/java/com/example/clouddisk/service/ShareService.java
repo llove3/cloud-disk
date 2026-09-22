@@ -62,7 +62,7 @@ public class ShareService {
         share.setFileId(fileId);
         share.setUserId(userId);
         share.setShareCode(code);
-        share.setPassword(password != null && !password.isEmpty() ? password : null);
+        share.setPassword(normalizePassword(password));
         share.setExpireTime(expireTime);
         share.setIsPackage(false);
         share.setMaxVisits(maxVisits);
@@ -75,7 +75,8 @@ public class ShareService {
         if (fileIds == null || fileIds.isEmpty()) {
             throw new RuntimeException("请至少选择一个文件");
         }
-        String safeZipName = (zipName != null && !zipName.trim().isEmpty()) ? zipName.trim() : "打包文件";
+        String safeZipName = (zipName != null && !zipName.trim().isEmpty())
+                ? zipName.trim().replaceAll("[\\\\/:*?\"<>|]", "_") : "打包文件";
         if (!safeZipName.toLowerCase().endsWith(".zip")) {
             safeZipName += ".zip";
         }
@@ -121,7 +122,7 @@ public class ShareService {
         share.setFileId(packageFile.getId());
         share.setUserId(userId);
         share.setShareCode(code);
-        share.setPassword(password != null && !password.isEmpty() ? password : null);
+        share.setPassword(normalizePassword(password));
         share.setExpireTime(expireTime);
         share.setIsPackage(true);
         share.setMaxVisits(maxVisits);
@@ -129,7 +130,7 @@ public class ShareService {
         return share;
     }
 
-    @Transactional
+    @Transactional(noRollbackFor = RuntimeException.class)
     public FileInfo getFileByShareCode(String code, String inputPassword, String ipAddress, String userAgent) {
         Share share = shareMapper.findByCode(code);
         ShareAccessLog log = new ShareAccessLog();
@@ -138,9 +139,6 @@ public class ShareService {
         log.setUserAgent(userAgent);
 
         if (share == null) {
-            log.setSuccess(false);
-            log.setErrorReason("分享链接不存在");
-            shareAccessLogMapper.insert(log);
             throw new RuntimeException("分享链接不存在");
         }
         log.setShareId(share.getId());
@@ -170,7 +168,12 @@ public class ShareService {
             shareAccessLogMapper.insert(log);
             throw new RuntimeException("原文件已被删除");
         }
-        shareMapper.incrementVisitCount(code);
+        if (shareMapper.incrementVisitCount(code) == 0) {
+            log.setSuccess(false);
+            log.setErrorReason("分享链接已过期或访问次数已用尽");
+            shareAccessLogMapper.insert(log);
+            throw new RuntimeException("分享链接已过期或访问次数已用尽");
+        }
         log.setSuccess(true);
         shareAccessLogMapper.insert(log);
         return file;
@@ -196,7 +199,7 @@ public class ShareService {
             throw new RuntimeException("无权修改此分享");
         }
         if (password != null) {
-            share.setPassword(password.isEmpty() ? null : password);
+            share.setPassword(normalizePassword(password));
         }
         if (expireDays != null && expireDays > 0) {
             share.setExpireTime(new Date(System.currentTimeMillis() + expireDays * 24L * 60 * 60 * 1000));
@@ -204,7 +207,7 @@ public class ShareService {
             share.setExpireTime(null);
         }
         if (maxVisits != null) {
-            share.setMaxVisits(maxVisits);
+            share.setMaxVisits(maxVisits > 0 ? maxVisits : null);
         }
         shareMapper.update(share);
     }
@@ -215,5 +218,11 @@ public class ShareService {
             throw new RuntimeException("无权查看此分享日志");
         }
         return shareAccessLogMapper.findByShareId(shareId);
+    }
+
+    private String normalizePassword(String password) {
+        if (password == null || password.isEmpty()) return null;
+        if (password.length() > 100) throw new IllegalArgumentException("提取码不能超过 100 字符");
+        return password;
     }
 }

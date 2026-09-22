@@ -10,7 +10,7 @@ public class WebConfig implements WebMvcConfigurer {
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
         registry.addInterceptor(new LoginInterceptor())
-                .addPathPatterns("/files", "/api/file/**", "/recycle", "/profile", "/shares", "/api/share/**")
+                .addPathPatterns("/files", "/api/file/**", "/recycle", "/profile", "/shares", "/api/share/**", "/api/recycle/**", "/api/ai/**")
                 .excludePathPatterns("/login", "/register", "/api/user/login", "/api/user/register", "/forgot-password", "/api/user/forgot-password", "/api/user/send-code", "/s/**");
     }
 }

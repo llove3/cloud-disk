@@ -1,6 +1,7 @@
 package com.example.clouddisk.entity;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import java.util.Date;
 
@@ -16,6 +17,7 @@ public class FileInfo {
     private Boolean deleted;
     private Boolean starred;
     private String remark;
+    private Long indexGeneration;
 
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
     private Date createdAt;
@@ -35,9 +37,12 @@ public class FileInfo {
     public void setFileName(String fileName) { this.fileName = fileName; }
     public Long getFileSize() { return fileSize; }
     public void setFileSize(Long fileSize) { this.fileSize = fileSize; }
+    @JsonIgnore
     public String getFilePath() { return filePath; }
     public void setFilePath(String filePath) { this.filePath = filePath; }
+    @JsonIgnore
     public String getFileMd5() { return fileMd5; }
+    public boolean isFolder() { return filePath == null || filePath.isEmpty(); }
     public void setFileMd5(String fileMd5) { this.fileMd5 = fileMd5; }
     public Long getParentId() { return parentId; }
     public void setParentId(Long parentId) { this.parentId = parentId; }
@@ -53,4 +58,6 @@ public class FileInfo {
     public void setStarred(Boolean starred) { this.starred = starred; }
     public String getRemark() { return remark; }
     public void setRemark(String remark) { this.remark = remark; }
+    public Long getIndexGeneration() { return indexGeneration; }
+    public void setIndexGeneration(Long indexGeneration) { this.indexGeneration = indexGeneration; }
 }

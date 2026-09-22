@@ -314,6 +314,21 @@ public class FileController {
                 .body(data);
     }
 
+    @GetMapping("/version/download/{versionId}")
+    public ResponseEntity<byte[]> downloadVersion(@PathVariable Long versionId, HttpSession session) throws IOException {
+        User user = (User) session.getAttribute("user");
+        if (user == null) return ResponseEntity.status(401).build();
+        FileVersion version = fileService.getVersionById(versionId, user.getId());
+        if (version == null) return ResponseEntity.notFound().build();
+        Path path = Paths.get(version.getFilePath());
+        if (!Files.isRegularFile(path)) return ResponseEntity.notFound().build();
+        String encoded = URLEncoder.encode(version.getFileName(), StandardCharsets.UTF_8).replace("+", "%20");
+        return ResponseEntity.ok().header(HttpHeaders.CONTENT_DISPOSITION,
+                        "attachment; filename*=UTF-8''" + encoded)
+                .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                .body(Files.readAllBytes(path));
+    }
+
     @PostMapping("/rename")
     public Map<String, Object> rename(@RequestParam Long fileId,
                                       @RequestParam String newName,

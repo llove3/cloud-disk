@@ -44,6 +44,13 @@ public interface FileMapper {
     @Select("SELECT * FROM file WHERE id = #{id}")
     FileInfo findById(@Param("id") Long id);
 
+    @Update("UPDATE file SET index_generation = index_generation + 1 WHERE id = #{id}")
+    int incrementIndexGeneration(@Param("id") Long id);
+
+    @Select("SELECT (SELECT COUNT(*) FROM file WHERE file_path = #{path}) + " +
+            "(SELECT COUNT(*) FROM file_version WHERE file_path = #{path})")
+    int countReferencesByPath(@Param("path") String path);
+
     @Select("SELECT * FROM file WHERE user_id = #{userId} AND deleted = FALSE " +
             "AND (file_path NOT LIKE '%/packages/%' OR file_path = '')")
     List<FileInfo> findByUserIdAndDeletedFalse(@Param("userId") Long userId);

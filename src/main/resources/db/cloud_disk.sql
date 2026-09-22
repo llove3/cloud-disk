@@ -35,8 +35,26 @@ CREATE TABLE `file`  (
   `deleted_at` datetime NULL DEFAULT NULL,
   `starred` tinyint(1) NULL DEFAULT 0 COMMENT '是否收藏',
   `remark` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '文件备注',
+  `index_generation` bigint NOT NULL DEFAULT 0,
   PRIMARY KEY (`id`) USING BTREE
 ) ENGINE = InnoDB AUTO_INCREMENT = 156 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = Dynamic;
+
+DROP TABLE IF EXISTS `ai_index_task`;
+CREATE TABLE `ai_index_task` (
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `file_id` bigint NOT NULL,
+  `user_id` bigint NOT NULL,
+  `generation` bigint NOT NULL,
+  `operation` varchar(10) NOT NULL,
+  `status` varchar(16) NOT NULL DEFAULT 'PENDING',
+  `attempts` int NOT NULL DEFAULT 0,
+  `last_error` varchar(500) NULL,
+  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_ai_file_generation` (`file_id`, `generation`),
+  KEY `idx_ai_task_status` (`status`, `updated_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- ----------------------------
 -- Table structure for file_version
@@ -63,7 +81,7 @@ CREATE TABLE `share`  (
   `file_id` bigint NOT NULL,
   `user_id` bigint NOT NULL,
   `share_code` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,
-  `password` varchar(10) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL,
+  `password` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL,
   `expire_time` datetime NULL DEFAULT NULL,
   `created_at` datetime NULL DEFAULT CURRENT_TIMESTAMP,
   `is_package` tinyint(1) NULL DEFAULT 0 COMMENT '是否为打包分享',

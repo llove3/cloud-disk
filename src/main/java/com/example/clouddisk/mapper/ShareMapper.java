@@ -23,7 +23,9 @@ public interface ShareMapper {
     @Select("SELECT * FROM share WHERE id = #{id}")
     Share findById(@Param("id") Long id);
 
-    @Update("UPDATE share SET visit_count = visit_count + 1 WHERE share_code = #{code}")
+    @Update("UPDATE share SET visit_count = visit_count + 1 WHERE share_code = #{code} " +
+            "AND (expire_time IS NULL OR expire_time > NOW()) " +
+            "AND (max_visits IS NULL OR visit_count < max_visits)")
     int incrementVisitCount(@Param("code") String code);
 
     @Update("UPDATE share SET password = #{password}, expire_time = #{expireTime}, max_visits = #{maxVisits} WHERE id = #{id}")

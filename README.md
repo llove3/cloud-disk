@@ -1,83 +1,74 @@
-# ☁️ Cloud Disk - 轻量级个人网盘系统
+# Cloud Disk
 
-[![Java Version](https://img.shields.io/badge/Java-17-blue.svg)](https://openjdk.org/projects/jdk/17/)
-[![Spring Boot](https://img.shields.io/badge/Spring%20Boot-4.0.5-brightgreen.svg)](https://spring.io/projects/spring-boot)
-[![License](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+基于 Spring Boot 4、MyBatis、MySQL、Vue 3 和 Spring AI 的个人云盘。支持文件与历史版本、回收站、受限分享，以及对私有文档的混合检索和带引用问答。
 
-> 一个基于 Spring Boot + MyBatis + MySQL 构建的仿百度网盘系统。实现了文件秒传、版本控制、分享链接管理及回收站自动清理等核心功能，前端采用原生 HTML/CSS/JavaScript 构建现代化响应式界面。
+## 功能与边界
 
-## ✨ 核心亮点
+- MD5 秒传与物理文件复用；删除当前文件或历史版本时，按存储路径检查两张表的全部引用。
+- 文件覆盖后保留历史版本，可预览、下载、删除和回滚。
+- 分享可设提取码、有效期和访问次数，并记录成功及失败访问。仅单文件分享可以问答。
+- 上传、覆盖、回滚、恢复、删除与重命名创建索引任务。RabbitMQ 消费者用 Tika 提取 PDF、DOC、DOCX、TXT、MD 文本，本地 ONNX 模型生成 384 维向量并写入 Elasticsearch。扫描版 PDF 不做 OCR。
+- 问答先合并关键词与向量检索结果，再按当前登录用户、文件状态和版本复核；DeepSeek 仅接收命中的片段。最近 6 轮对话存在 Redis，24 小时后过期。回答通过 SSE 返回，并提供来源预览入口。
+- 前端为 Vue 3 + Vue Router + Vite，保留登录、注册、找回密码、文件、回收站、分享、个人中心及公开分享页面。
 
-- **文件秒传机制**：基于 MD5 哈希校验，重复文件直接引用，节省服务器存储空间。
-- **细粒度版本控制**：支持文件历史版本回溯、预览与任意版本回滚。
-- **灵活的分享系统**：支持单文件/文件夹打包分享，可设置提取码、有效期及访问次数限制。
-- **健壮的空间管理**：实时计算用户已用空间，支持空间校准与容量预警。
-- **自动化运维**：内置定时任务，根据用户自定义天数自动清理回收站过期文件。
+## 本地启动
 
-## 🛠️ 技术栈
+需要 Java 17、Maven、Node.js、MySQL 8 和 Docker Desktop。首次使用先创建**独立**数据库 `cloud_disk_ai`，再导入 [建表脚本](src/main/resources/db/cloud_disk.sql)。脚本会删除目标数据库中的同名表，只应在新数据库执行。旧 `cloud_disk` 数据库和旧 `uploads/` 目录不参与本次启动。
 
-| 层级        | 技术选型                          |
-| ----------- | --------------------------------- |
-| **后端框架** | Spring Boot 4.0.5 (Java 17)       |
-| **安全控制** | Spring Security Crypto (BCrypt)   |
-| **持久层**   | MyBatis (注解 + XML 混合)          |
-| **数据库**   | MySQL 8.0                         |
-| **前端模板** | Thymeleaf + Font Awesome + Inter 字体 |
-| **异步/调度**| Spring `@Scheduled` 定时任务       |
-| **构建工具** | Maven                             |
-
-## 📁 功能模块
-
-### 1. 用户体系
-- QQ 邮箱注册 / 登录 / 密码找回（SMTP 验证码）。
-- 个人中心：支持修改头像、用户名、换绑邮箱及修改密码。
-
-### 2. 文件管理核心
-- **文件操作**：上传、下载、新建文件夹、重命名、移动、复制、收藏、添加备注。
-- **批量处理**：多选批量删除、批量下载（自动打包为 ZIP）、批量移动。
-- **视图模式**：列表 / 网格双视图切换，支持按名称、大小、时间排序。
-- **全局搜索**：支持按文件名模糊搜索，并可按图片/文档/视频/音频等分类筛选。
-
-### 3. 高级特性
-- **文件秒传**：上传前计算 MD5，若服务器已存在相同文件，直接映射逻辑路径，无需物理传输。
-- **版本管理**：覆盖上传时自动备份旧版本。支持查看历史版本列表、预览旧版本内容、回滚或删除特定版本。
-- **分享管理**：生成 8 位提取码分享链接。支持设置 **访问密码**、**有效期**、**最大访问次数**。后台记录详细的访问日志（IP、UA、成功/失败状态）。
-
-### 4. 回收站与运维
-- **回收站**：删除文件进入回收站，支持彻底删除或还原。
-- **自动清理策略**：用户可自定义回收站保留天数（0 天代表永不自动清理）。
-- **空间校准**：一键触发后台异步计算，校准因版本残留或异常导致的空间占用误差。
-
-## 🚀 快速开始
-
-### 环境准备
-- JDK 17+
-- Maven 3.6+
-- MySQL 8.0+
-
-### 数据库初始化
-在 MySQL 中执行项目内的 SQL 脚本：
-```bash
-mysql -u root -p cloud_disk < src/main/resources/db/cloud_disk.sql
+```sql
+CREATE DATABASE cloud_disk_ai CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;
 ```
 
-### 运行配置
+```powershell
+mysql -u YOUR_USER -p cloud_disk_ai -e "source src/main/resources/db/cloud_disk.sql"
+docker compose up -d
+cd frontend
+npm ci
+npm run build
+cd ..
+mvn test
+mvn clean package
+java -jar target/cloud-disk-0.0.1-SNAPSHOT.jar
+```
 
-运行前在本机或部署环境中设置下列环境变量，不要把真实账号、密码或授权码提交到 Git：
+访问 `http://localhost:8080/login`。前端开发时在 `frontend/` 运行 `npm run dev`；Vite 将 `/api` 和公开分享操作代理到 `localhost:8080`。生产包须先执行 `npm run build`，产物会写入 Spring Boot 的 `static/` 目录并随 Maven 打包。
+
+### 环境变量
 
 | 变量 | 用途 |
 | --- | --- |
-| `MYSQL_NAME` | MySQL 用户名（必需） |
-| `MYSQL_PSW` | MySQL 密码（必需） |
-| `SMTP_USERNAME` | 发信邮箱地址（必需） |
-| `SMTP_PASSWORD` | SMTP 授权码（必需） |
-| `DB_URL` | 数据库连接地址（可选，默认为本机 `cloud_disk` 数据库） |
-| `FILE_UPLOAD_DIR` | 上传文件目录（可选，默认为项目目录下的 `uploads`） |
+| `MYSQL_NAME`, `MYSQL_PSW` | MySQL 用户名与密码，必填 |
+| `SMTP_USERNAME`, `SMTP_PASSWORD` | 邮件服务账号与授权码，注册、找回密码需要 |
+| `DEEPSEEK_API_KEY` | DeepSeek API 密钥，问答需要 |
+| `DB_URL` | 可选，默认连接本机 `cloud_disk_ai` |
+| `FILE_UPLOAD_DIR` | 可选，默认 `./uploads-ai` |
+| `RABBITMQ_HOST`, `RABBITMQ_PORT`, `RABBITMQ_USERNAME`, `RABBITMQ_PASSWORD` | 可选，默认本机 guest/guest |
+| `REDIS_HOST`, `REDIS_PORT`, `ELASTICSEARCH_URL` | 可选，默认本机服务；Elasticsearch 映射到 `localhost:19200` |
+| `AI_MODEL_URI`, `AI_TOKENIZER_URI` | 可选，改用本地 ONNX 与 tokenizer 文件的 `file:` URI |
+| `AI_MODEL_CACHE` | 可选，远端模型的本地缓存目录，位于 Git 目录外 |
 
-设置好环境变量后，打开新的 PowerShell 窗口并启动：
+不要将真实密钥或上传内容提交到 Git。默认上传目录 `uploads-ai/`、原目录 `uploads/` 和前端依赖均已忽略。
+
+首次启动会下载 [`paraphrase-multilingual-MiniLM-L12-v2`](https://huggingface.co/sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2/tree/main/onnx) 的约 470 MB ONNX 文件及 tokenizer。若 Java 无法访问 Hugging Face，可手动下载 `onnx/model.onnx` 和根目录 `tokenizer.json` 到 Git 目录外，并将两个 `AI_*_URI` 设为相应 `file:///...` 地址。Windows 上使用 ONNX Runtime 1.20.0，以避免 1.21.x 的原生 DLL 初始化问题。模型首次推理还可能下载 DJL 的本地运行库。
+
+## 验证
 
 ```powershell
-./mvnw.cmd spring-boot:run
+cd frontend
+npm run check
+npm run build
+cd ..
+mvn test
 ```
 
-`uploads/`、本地配置文件和常见私钥文件已加入 `.gitignore`。提交前请再次检查暂存区，避免意外上传真实凭据或用户文件。
+设置 `AI_MODEL_URI` 和 `AI_TOKENIZER_URI` 为已下载文件后，`LocalEmbeddingModelTest` 会额外验证中文文本生成 384 维向量。集成验证可依次使用两个账号上传不同文档，等待 `/api/ai/index/{fileId}` 状态为 `DONE`，再调用 `/api/ai/search?q=...` 与 `/api/ai/chat`；第二个账号不应看到第一个账号的片段。模拟已上传文件的内容丢失后，任务至多尝试 3 次，再进入 `cloud.disk.ai.dead.queue`。失败任务只允许文件所有者通过 `/api/ai/index/{fileId}/retry` 重试。
+
+## 常见问题
+
+- 索引长期 `PENDING`：确认 RabbitMQ 正常，服务每分钟会补发未投递任务。
+- 索引 `FAILED`：查看状态接口中的 `lastError` 和 RabbitMQ 死信队列；修复文件或服务后使用重试接口。
+- 问答提示无依据：确认文件是支持的文档类型、索引已完成，且问题确实能命中当前账号文档。
+- 启动时 ONNX 报 DLL 错误：在 Windows 安装当前 Visual C++ x64 Runtime，或使用项目固定的 ONNX Runtime 1.20.0；模型文件不要放进 Git。
+- Docker Desktop 报 Virtual Machine Platform 未启用：需由管理员启用 Windows 的 WSL 2 / Virtual Machine Platform，并在要求时重启；之后再运行 `docker compose up -d`。
+
+Spring AI 的 [ONNX 配置](https://docs.spring.io/spring-ai/reference/api/embeddings/onnx.html)、[DeepSeek Chat 配置](https://docs.spring.io/spring-ai/reference/api/chat/deepseek-chat.html) 和 [Vue + Vite 构建](https://vuejs.org/guide/quick-start)文档可作为进一步配置参考。

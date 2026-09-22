@@ -6,10 +6,13 @@ import com.example.clouddisk.entity.User;
 import com.example.clouddisk.mapper.FileMapper;
 import com.example.clouddisk.mapper.FileVersionMapper;
 import com.example.clouddisk.mapper.UserMapper;
+import com.example.clouddisk.ai.AiIndexTaskService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.*;
@@ -36,6 +39,9 @@ public class FileService {
 
     @Autowired
     private UserService userService;
+
+    @Autowired
+    private AiIndexTaskService aiIndexTaskService;
 
     @Value("${file.upload-dir}")
     private String uploadDir;
@@ -69,13 +75,14 @@ public class FileService {
 
     @Transactional
     public User saveFile(Long userId, Long parentId, MultipartFile file) throws Exception {
+        validateFolder(userId, parentId);
         String md5 = getFileMd5(file);
         Long fileSize = file.getSize();
         String originalName = sanitizeFileName(file.getOriginalFilename());
 
         FileInfo sameMd5File = fileMapper.findByMd5AndSize(md5, fileSize);
         String storePath;
-        if (sameMd5File != null) {
+        if (sameMd5File != null && Files.exists(Paths.get(sameMd5File.getFilePath()))) {
             storePath = sameMd5File.getFilePath();
         } else {
             Path userPath = Paths.get(uploadDir, String.valueOf(userId));
@@ -108,7 +115,9 @@ public class FileService {
             fileInfo.setStarred(false);
             fileMapper.insert(fileInfo);
             userMapper.addUsedSpace(userId, fileSize);
+            aiIndexTaskService.enqueue(fileInfo.getId(), userId, "UPSERT");
         } else {
+            if (existing.isFolder()) throw new IllegalArgumentException("同名文件夹已存在");
             long oldSize = existing.getFileSize();
             FileVersion version = new FileVersion();
             version.setFileId(existing.getId());
@@ -125,6 +134,7 @@ public class FileService {
             fileMapper.update(existing);
             userMapper.subUsedSpace(userId, oldSize);
             userMapper.addUsedSpace(userId, fileSize);
+            aiIndexTaskService.enqueue(existing.getId(), userId, "UPSERT");
         }
         return userService.getUpdatedUser(userId);
     }
@@ -224,10 +234,12 @@ public class FileService {
         return fileMapper.findByIdAndUserId(fileId, userId);
     }
 
+    @Transactional
     public void deleteFile(Long fileId, Long userId) {
         FileInfo file = getFile(fileId, userId);
         if (file != null) {
             fileMapper.softDeleteById(fileId);
+            aiIndexTaskService.enqueue(fileId, userId, "DELETE");
         }
     }
 
@@ -235,10 +247,12 @@ public class FileService {
         return fileMapper.findRecycleBinByUserId(userId);
     }
 
+    @Transactional
     public void restoreFile(Long fileId, Long userId) {
         FileInfo file = fileMapper.findByIdAndUserIdIncludeDeleted(fileId, userId);
         if (file != null && file.getDeleted()) {
             fileMapper.restoreById(fileId);
+            aiIndexTaskService.enqueue(fileId, userId, "UPSERT");
         }
     }
 
@@ -246,29 +260,20 @@ public class FileService {
     public void permanentDelete(Long fileId, Long userId) throws IOException {
         FileInfo file = fileMapper.findByIdAndUserIdIncludeDeleted(fileId, userId);
         if (file != null && file.getDeleted()) {
-            boolean isFolder = (file.getFileSize() == 0 && (file.getFilePath() == null || file.getFilePath().isEmpty()));
-            if (!isFolder) {
-                boolean hasOtherReference = fileMapper.countByMd5AndSizeExcludingId(file.getFileMd5(), file.getFileSize(), fileId) > 0;
-                if (!hasOtherReference) {
-                    Path currentPath = Paths.get(file.getFilePath());
-                    Files.deleteIfExists(currentPath);
-                }
-            }
-
             List<FileVersion> versions = fileVersionMapper.findByFileId(fileId);
+            Set<String> paths = new HashSet<>();
+            if (file.getFilePath() != null && !file.getFilePath().isEmpty()) paths.add(file.getFilePath());
             long totalVersionSize = 0L;
             for (FileVersion version : versions) {
                 totalVersionSize += version.getFileSize();
-                boolean versionHasRef = fileVersionMapper.countByMd5ExcludingId(version.getFileMd5(), version.getId()) > 0;
-                if (!versionHasRef && version.getFilePath() != null && !version.getFilePath().isEmpty()) {
-                    Path versionPath = Paths.get(version.getFilePath());
-                    Files.deleteIfExists(versionPath);
-                }
+                if (version.getFilePath() != null && !version.getFilePath().isEmpty()) paths.add(version.getFilePath());
             }
+            aiIndexTaskService.enqueue(fileId, userId, "DELETE");
             fileVersionMapper.deleteByFileId(fileId);
             fileMapper.permanentDeleteById(fileId);
             userMapper.subUsedSpace(userId, file.getFileSize());
             userMapper.subUsedSpace(userId, totalVersionSize);
+            deleteUnreferencedAfterCommit(paths);
         }
     }
 
@@ -315,6 +320,7 @@ public class FileService {
         fileMapper.update(current);
         userMapper.subUsedSpace(userId, oldSize);
         userMapper.addUsedSpace(userId, targetVersion.getFileSize());
+        aiIndexTaskService.enqueue(fileId, userId, "UPSERT");
     }
 
     @Transactional
@@ -327,16 +333,14 @@ public class FileService {
         if (version == null || !version.getFileId().equals(fileId)) {
             throw new RuntimeException("版本不存在");
         }
-        boolean versionHasRef = fileVersionMapper.countByMd5ExcludingId(version.getFileMd5(), versionId) > 0;
-        if (!versionHasRef && version.getFilePath() != null && !version.getFilePath().isEmpty()) {
-            Path versionPath = Paths.get(version.getFilePath());
-            Files.deleteIfExists(versionPath);
-        }
         fileVersionMapper.deleteById(versionId);
         userMapper.subUsedSpace(userId, version.getFileSize());
+        if (version.getFilePath() != null && !version.getFilePath().isEmpty())
+            deleteUnreferencedAfterCommit(Set.of(version.getFilePath()));
     }
 
     public void createFolder(Long userId, Long parentId, String folderName) {
+        validateFolder(userId, parentId);
         String safeName = sanitizeFileName(folderName);
         FileInfo existing = fileMapper.findByUserIdAndParentIdAndFileName(userId, parentId, safeName);
         if (existing != null) {
@@ -355,12 +359,19 @@ public class FileService {
         fileMapper.insert(folder);
     }
 
+    private void validateFolder(Long userId, Long parentId) {
+        if (parentId == null || parentId == 0) return;
+        FileInfo parent = fileMapper.findByIdAndUserId(parentId, userId);
+        if (parent == null || !parent.isFolder()) throw new IllegalArgumentException("目标文件夹不存在或无权访问");
+    }
+
     @Transactional
     public void batchDelete(List<Long> fileIds, Long userId) {
         for (Long fileId : fileIds) {
             FileInfo file = getFile(fileId, userId);
             if (file != null) {
                 fileMapper.softDeleteById(fileId);
+                aiIndexTaskService.enqueue(fileId, userId, "DELETE");
             }
         }
     }
@@ -429,6 +440,7 @@ public class FileService {
         }
         file.setFileName(safeName);
         fileMapper.update(file);
+        aiIndexTaskService.enqueue(fileId, userId, "UPSERT");
     }
 
     @Transactional
@@ -441,9 +453,16 @@ public class FileService {
             return;
         }
         if (targetParentId != 0) {
-            FileInfo targetFolder = fileMapper.findById(targetParentId);
+            FileInfo targetFolder = fileMapper.findByIdAndUserId(targetParentId, userId);
             if (targetFolder == null || targetFolder.getFileSize() != 0 || !targetFolder.getDeleted().equals(false)) {
                 throw new RuntimeException("目标文件夹不存在");
+            }
+            if (!targetFolder.isFolder()) throw new RuntimeException("目标不是文件夹");
+            Long ancestor = targetParentId;
+            while (ancestor != null && ancestor != 0) {
+                if (ancestor.equals(fileId)) throw new RuntimeException("不能移入自身或子文件夹");
+                FileInfo parent = fileMapper.findByIdAndUserId(ancestor, userId);
+                ancestor = parent == null ? 0L : parent.getParentId();
             }
         }
         FileInfo conflict = fileMapper.findByUserIdAndParentIdAndFileName(userId, targetParentId, file.getFileName());
@@ -452,6 +471,21 @@ public class FileService {
         }
         file.setParentId(targetParentId);
         fileMapper.update(file);
+    }
+
+    private void deleteUnreferencedAfterCommit(Set<String> paths) {
+        Runnable cleanup = () -> {
+            for (String path : paths) {
+                if (path == null || path.isEmpty() || fileMapper.countReferencesByPath(path) != 0) continue;
+                try { Files.deleteIfExists(Paths.get(path)); }
+                catch (IOException e) { throw new RuntimeException("无法删除无引用文件: " + path, e); }
+            }
+        };
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override public void afterCommit() { cleanup.run(); }
+            });
+        } else cleanup.run();
     }
 
     @Transactional

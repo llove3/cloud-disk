@@ -39,6 +39,12 @@ build/
 src/main/resources/application-local.properties
 src/main/resources/application-secrets.properties
 uploads/
+uploads-ai/
+frontend/node_modules/
+src/main/resources/static/assets/
+src/main/resources/static/index.html
+src/main/resources/static/images/default.png
+.cache/
 *.pem
 *.p12
 *.jks

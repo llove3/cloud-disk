@@ -1,6 +1,7 @@
 package com.example.clouddisk.entity;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import java.util.Date;
 
@@ -26,8 +27,10 @@ public class FileVersion {
     public void setFileName(String fileName) { this.fileName = fileName; }
     public Long getFileSize() { return fileSize; }
     public void setFileSize(Long fileSize) { this.fileSize = fileSize; }
+    @JsonIgnore
     public String getFilePath() { return filePath; }
     public void setFilePath(String filePath) { this.filePath = filePath; }
+    @JsonIgnore
     public String getFileMd5() { return fileMd5; }
     public void setFileMd5(String fileMd5) { this.fileMd5 = fileMd5; }
     public Date getCreatedAt() { return createdAt; }

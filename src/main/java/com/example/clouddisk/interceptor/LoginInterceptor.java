@@ -11,6 +11,10 @@ public class LoginInterceptor implements HandlerInterceptor {
         HttpSession session = request.getSession();
         Object user = session.getAttribute("user");
         if (user == null) {
+            if (request.getRequestURI().startsWith("/api/")) {
+                response.sendError(HttpServletResponse.SC_UNAUTHORIZED);
+                return false;
+            }
             response.sendRedirect("/login");
             return false;
         }

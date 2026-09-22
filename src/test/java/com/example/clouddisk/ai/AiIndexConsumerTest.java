@@ -54,4 +54,12 @@ class AiIndexConsumerTest {
         assertEquals(40, chunks.get(0).substring(240).length());
         assertEquals(chunks.get(0).substring(240), chunks.get(1).substring(0, 40));
     }
+
+    @Test
+    void markdownHeadingsKeepWordsWithoutMarkers() {
+        var chunks = AiIndexConsumer.chunk("### 部署步骤\n安装依赖\n## 配置\n设置环境变量");
+        assertEquals(1, chunks.size());
+        assertTrue(chunks.get(0).contains("部署步骤 安装依赖 配置 设置环境变量"));
+        assertFalse(chunks.get(0).contains("#"));
+    }
 }

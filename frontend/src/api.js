@@ -14,11 +14,11 @@ export function post(path, fields) {
   return api(path, { method: 'POST', body: new URLSearchParams(fields) })
 }
 
-export async function stream(path, question, onEvent, password = undefined) {
+export async function stream(path, question, onEvent, password = undefined, fileId = undefined) {
   const response = await fetch(path, {
     method: 'POST', credentials: 'same-origin',
     headers: { 'Content-Type': 'application/json', Accept: 'text/event-stream' },
-    body: JSON.stringify({ question, password })
+    body: JSON.stringify({ question, password, fileId })
   })
   if (!response.ok) throw new Error(await response.text())
   const reader = response.body.getReader()
@@ -32,7 +32,7 @@ export async function stream(path, question, onEvent, password = undefined) {
     while ((cut = pending.indexOf('\n\n')) >= 0) {
       const block = pending.slice(0, cut).replaceAll('\r', '')
       pending = pending.slice(cut + 2)
-      const event = block.match(/^event: (.+)$/m)?.[1]
+      const event = block.match(/^event:\s*(.+)$/m)?.[1]
       const data = block.split('\n').filter(line => line.startsWith('data:')).map(line => line.slice(5).trimStart()).join('\n')
       if (event) onEvent(event, event === 'source' ? JSON.parse(data) : data)
     }

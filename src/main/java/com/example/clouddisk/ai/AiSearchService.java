@@ -9,6 +9,8 @@ import org.springframework.http.HttpStatusCode;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientResponseException;
+import ai.djl.engine.Engine;
+import jakarta.annotation.PostConstruct;
 
 import java.util.*;
 
@@ -27,6 +29,12 @@ public class AiSearchService {
         this.es = RestClient.builder().baseUrl(url).build();
         this.embeddings = embeddings;
         this.files = files;
+    }
+
+    @PostConstruct
+    void initializeLocalModel() {
+        Engine.getEngine("PyTorch");
+        embed("云盘文档");
     }
 
     private synchronized void ensureIndex() {
@@ -66,7 +74,7 @@ public class AiSearchService {
             document.put("version", file.getVersion());
             document.put("fileName", file.getFileName());
             document.put("content", content);
-            document.put("vector", embeddings.embed(content));
+            document.put("vector", embed(content));
             es.put().uri(INDEX + "/_doc/{id}", file.getId() + ":" + generation + ":" + i)
                     .body(document).retrieve().toBodilessEntity();
         }
@@ -81,11 +89,11 @@ public class AiSearchService {
         if (onlyFileId != null) filters.add(Map.of("term", Map.of("fileId", onlyFileId)));
         Map<String, Object> filter = Map.of("bool", Map.of("filter", filters));
         JsonNode keyword = es.post().uri(INDEX + "/_search").body(Map.of(
-                "size", 20, "query", Map.of("bool", Map.of("must", Map.of("match", Map.of("content", query)), "filter", filters))))
+                "size", 20, "query", Map.of("bool", Map.of("must", Map.of("match", Map.of("content", Map.of("query", query, "operator", "and"))), "filter", filters))))
                 .retrieve().body(JsonNode.class);
         JsonNode vector = es.post().uri(INDEX + "/_search").body(Map.of(
-                "size", 20, "knn", Map.of("field", "vector", "query_vector", embeddings.embed(query),
-                        "k", 20, "num_candidates", 100, "filter", filter)))
+                "size", 20, "knn", Map.of("field", "vector", "query_vector", embed(query),
+                        "k", 20, "num_candidates", 100, "similarity", 0.50, "filter", filter)))
                 .retrieve().body(JsonNode.class);
         Map<String, Double> scores = new HashMap<>();
         Map<String, JsonNode> hits = new HashMap<>();
@@ -117,5 +125,9 @@ public class AiSearchService {
             hits.put(id, hit);
             scores.merge(id, 1.0 / (60 + rank++), Double::sum);
         }
+    }
+
+    private synchronized float[] embed(String text) {
+        return embeddings.embed(text);
     }
 }

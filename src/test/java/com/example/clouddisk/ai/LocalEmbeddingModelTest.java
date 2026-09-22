@@ -17,6 +17,10 @@ class LocalEmbeddingModelTest {
         model.setTokenizerResource(System.getenv("AI_TOKENIZER_URI"));
         model.setTokenizerOptions(Map.of("padding", "true", "truncation", "true", "maxLength", "128"));
         model.afterPropertiesSet();
-        assertEquals(384, model.embed("这是一份中文私人文档").length);
+        for (int i = 0; i < 5; i++)
+            assertEquals(384, model.embed("这是一份中文私人文档 " + i).length);
+        assertEquals(384, model.embed("苹果采摘").length);
+        assertEquals(384, model.embed("苹果什么时候采摘？").length);
+        assertEquals(384, java.util.concurrent.CompletableFuture.supplyAsync(() -> model.embed("苹果采摘")).join().length);
     }
 }

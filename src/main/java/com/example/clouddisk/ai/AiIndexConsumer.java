@@ -25,7 +25,7 @@ import java.util.Set;
 
 @Component
 public class AiIndexConsumer {
-    private static final Set<String> SUPPORTED = Set.of("pdf", "doc", "docx", "txt", "md");
+    private static final Set<String> SUPPORTED = Set.of("pdf", "doc", "docx", "txt", "md", "xls", "xlsx", "ppt", "pptx", "csv");
     private final AiIndexTaskMapper tasks;
     private final FileMapper files;
     private final AiSearchService search;
@@ -82,7 +82,9 @@ public class AiIndexConsumer {
 
     static List<String> chunk(String content) {
         if (content == null || content.isBlank()) return List.of();
-        String normalized = content.replaceAll("\\s+", " ").trim();
+        String normalized = content.replaceAll("(?m)^\\s{0,3}#{1,6}\\s+", "")
+                .replaceAll("(?m)^\\s{0,3}[-*+]\\s+", "")
+                .replaceAll("\\s+", " ").trim();
         List<String> chunks = new ArrayList<>();
         for (int start = 0; start < normalized.length() && chunks.size() < 1000;) {
             int end = Math.min(start + 280, normalized.length());
@@ -93,7 +95,7 @@ public class AiIndexConsumer {
         return chunks;
     }
 
-    private String extract(Path path) throws Exception {
+    String extract(Path path) throws Exception {
         ParseContext context = new ParseContext();
         TesseractOCRConfig ocr = new TesseractOCRConfig();
         ocr.setSkipOcr(true);

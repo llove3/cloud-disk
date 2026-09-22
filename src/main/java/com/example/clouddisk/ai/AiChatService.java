@@ -6,6 +6,8 @@ import tools.jackson.databind.ObjectMapper;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.io.IOException;
@@ -16,6 +18,7 @@ import java.util.concurrent.CompletableFuture;
 
 @Service
 public class AiChatService {
+    private static final Logger log = LoggerFactory.getLogger(AiChatService.class);
     public record Turn(String question, String answer) {}
     private final AiSearchService search;
     private final ChatClient client;
@@ -70,6 +73,7 @@ public class AiChatService {
             send(emitter, "done", "");
             emitter.complete();
         } catch (Exception error) {
+            log.error("AI chat failed for user {}", userId, error);
             try { send(emitter, "error", "问答暂时不可用，请稍后重试"); }
             catch (IOException ignored) { }
             emitter.complete();

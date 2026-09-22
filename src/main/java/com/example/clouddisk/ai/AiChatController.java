@@ -4,6 +4,7 @@ import com.example.clouddisk.entity.FileInfo;
 import com.example.clouddisk.entity.Share;
 import com.example.clouddisk.entity.User;
 import com.example.clouddisk.mapper.ShareMapper;
+import com.example.clouddisk.mapper.FileMapper;
 import com.example.clouddisk.service.ShareService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
@@ -17,18 +18,20 @@ import java.util.List;
 
 @RestController
 public class AiChatController {
-    public record ChatRequest(String question, String password) {}
+    public record ChatRequest(String question, String password, Long fileId) {}
     private final AiChatService chat;
     private final AiSearchService search;
     private final ShareService shares;
     private final ShareMapper shareMapper;
+    private final FileMapper fileMapper;
 
     public AiChatController(AiChatService chat, AiSearchService search,
-                            ShareService shares, ShareMapper shareMapper) {
+                            ShareService shares, ShareMapper shareMapper, FileMapper fileMapper) {
         this.chat = chat;
         this.search = search;
         this.shares = shares;
         this.shareMapper = shareMapper;
+        this.fileMapper = fileMapper;
     }
 
     @GetMapping("/api/ai/search")
@@ -38,7 +41,13 @@ public class AiChatController {
 
     @PostMapping(value = "/api/ai/chat", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter chat(@RequestBody ChatRequest request, HttpSession session) {
-        return chat.chat(userId(session), request.question(), null, true);
+        Long owner = userId(session);
+        if (request.fileId() != null) {
+            FileInfo file = fileMapper.findByIdAndUserId(request.fileId(), owner);
+            if (file == null || file.isFolder())
+                throw new ResponseStatusException(HttpStatus.NOT_FOUND, "文件不存在或不可问答");
+        }
+        return chat.chat(owner, request.question(), request.fileId(), true);
     }
 
     @PostMapping(value = "/s/{code}/ai/chat", produces = MediaType.TEXT_EVENT_STREAM_VALUE)

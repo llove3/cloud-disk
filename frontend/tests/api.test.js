@@ -6,7 +6,7 @@ test('SSE parser handles split CRLF frames and error events', async () => {
   const previousFetch = globalThis.fetch
   const chunks = [
     'event: source\r\ndata: {"number":1,"fileId":3}\r\n\r',
-    '\nevent: token\r\ndata: 回答\r\n\r\nevent: error\r\ndata: 模型暂时不可用\r\n\r\n'
+    '\nevent:token\r\ndata:回答\r\n\r\nevent:error\r\ndata:模型暂时不可用\r\n\r\n'
   ]
   globalThis.fetch = async () => new Response(new ReadableStream({
     start(controller) { for (const chunk of chunks) controller.enqueue(new TextEncoder().encode(chunk)); controller.close() }

@@ -127,13 +127,22 @@ public class UserController {
     }
 
     @PostMapping("/change-password")
-    public String changePassword(@RequestParam String oldPassword,
+    public String changePassword(@RequestParam String code,
                                  @RequestParam String newPassword,
                                  HttpSession session) {
         User user = (User) session.getAttribute("user");
         if (user == null) return "请先登录";
-        boolean ok = userService.changePassword(user.getId(), oldPassword, newPassword);
-        return ok ? "密码修改成功" : "原密码错误";
+        if (newPassword.isBlank()) return "新密码不能为空";
+        boolean ok = userService.changePassword(user.getId(), code, newPassword);
+        if (ok) session.invalidate();
+        return ok ? "密码修改成功，请重新登录" : "验证码错误或已过期";
+    }
+
+    @PostMapping("/send-password-code")
+    public String sendPasswordCode(HttpSession session) {
+        User user = (User) session.getAttribute("user");
+        if (user == null) return "请先登录";
+        return userService.sendPasswordCode(user.getId());
     }
 
     @PostMapping("/upload-avatar")

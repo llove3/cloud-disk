@@ -33,6 +33,8 @@ public class UserService {
     private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
     private final Map<String, CodeInfo> verificationCodes = new ConcurrentHashMap<>();
+    private final Map<Long, CodeInfo> passwordCodes = new ConcurrentHashMap<>();
+    private final Map<Long, Long> passwordCodeSentAt = new ConcurrentHashMap<>();
 
     private static class CodeInfo {
         String code;
@@ -125,16 +127,33 @@ public class UserService {
         if (userMapper.findByEmail(newEmail) != null) return false;
         userMapper.updateEmail(userId, newEmail);
         verificationCodes.remove(newEmail);
+        passwordCodes.remove(userId);
         return true;
     }
 
-    public boolean changePassword(Long userId, String oldPassword, String newPassword) {
+    public synchronized String sendPasswordCode(Long userId) {
+        User user = userMapper.findById(userId);
+        if (user == null || user.getEmail() == null) return "请先登录";
+        long now = System.currentTimeMillis();
+        if (now - passwordCodeSentAt.getOrDefault(userId, 0L) < 60_000) return "请在60秒后重试";
+        String code = String.format("%06d", new SecureRandom().nextInt(1_000_000));
+        if (!mailService.sendSimpleMail(user.getEmail(), "云盘修改密码验证码", "您的修改密码验证码是：" + code + "，5分钟内有效。"))
+            return "发送失败，请稍后重试";
+        passwordCodes.put(userId, new CodeInfo(code, now + 300_000));
+        passwordCodeSentAt.put(userId, now);
+        return "验证码已发送至当前绑定邮箱";
+    }
+
+    public synchronized boolean changePassword(Long userId, String code, String newPassword) {
+        CodeInfo info = passwordCodes.get(userId);
+        if (info == null || System.currentTimeMillis() > info.expireTime || !info.code.equals(code)) return false;
         User user = userMapper.findById(userId);
         if (user == null) return false;
-        if (!passwordEncoder.matches(oldPassword, user.getPassword())) return false;
         String newEncryptedPwd = passwordEncoder.encode(newPassword);
         String newSalt = generateSalt();
-        return userMapper.updatePassword(userId, newEncryptedPwd, newSalt) > 0;
+        if (userMapper.updatePassword(userId, newEncryptedPwd, newSalt) == 0) return false;
+        passwordCodes.remove(userId);
+        return true;
     }
 
     public void updateAvatar(Long userId, String avatarUrl) {

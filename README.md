@@ -59,3 +59,28 @@
 在 MySQL 中执行项目内的 SQL 脚本：
 ```bash
 mysql -u root -p cloud_disk < src/main/resources/db/cloud_disk.sql
+```
+
+### 运行配置
+
+运行前在本机或部署环境中设置下列环境变量，不要把真实账号、密码或授权码提交到 Git：
+
+| 变量 | 用途 |
+| --- | --- |
+| `DB_PASSWORD` | MySQL 密码（必需） |
+| `MAIL_USERNAME` | 发信邮箱地址（必需） |
+| `MAIL_PASSWORD` | SMTP 授权码（必需） |
+| `DB_URL` | 数据库连接地址（可选，默认为本机 `cloud_disk` 数据库） |
+| `DB_USERNAME` | 数据库用户名（可选，默认为 `root`） |
+| `FILE_UPLOAD_DIR` | 上传文件目录（可选，默认为项目目录下的 `uploads`） |
+
+例如，可在 PowerShell 中设置环境变量后启动：
+
+```powershell
+$env:DB_PASSWORD = '<your-database-password>'
+$env:MAIL_USERNAME = '<your-email-address>'
+$env:MAIL_PASSWORD = '<your-smtp-authorization-code>'
+./mvnw.cmd spring-boot:run
+```
+
+`uploads/`、本地配置文件和常见私钥文件已加入 `.gitignore`。提交前请再次检查暂存区，避免意外上传真实凭据或用户文件。

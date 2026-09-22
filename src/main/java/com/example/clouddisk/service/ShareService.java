@@ -79,13 +79,12 @@ public class ShareService {
         if (!safeZipName.toLowerCase().endsWith(".zip")) {
             safeZipName += ".zip";
         }
-        String userDir = uploadDir + userId + "/packages/";
-        Path userPath = Paths.get(userDir);
+        Path userPath = Paths.get(uploadDir, String.valueOf(userId), "packages");
         if (!Files.exists(userPath)) {
             Files.createDirectories(userPath);
         }
         String zipFileName = System.currentTimeMillis() + "_" + safeZipName;
-        String zipFilePath = userDir + zipFileName;
+        String zipFilePath = userPath.resolve(zipFileName).toString();
 
         try (FileOutputStream fos = new FileOutputStream(zipFilePath);
              ZipOutputStream zos = new ZipOutputStream(fos)) {

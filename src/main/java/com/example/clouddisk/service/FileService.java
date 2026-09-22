@@ -78,8 +78,7 @@ public class FileService {
         if (sameMd5File != null) {
             storePath = sameMd5File.getFilePath();
         } else {
-            String userDir = uploadDir + userId + "/";
-            Path userPath = Paths.get(userDir);
+            Path userPath = Paths.get(uploadDir, String.valueOf(userId));
             if (!Files.exists(userPath)) {
                 Files.createDirectories(userPath);
             }
@@ -91,7 +90,7 @@ public class FileService {
                 extension = originalName.substring(dotIndex);
             }
             String uniqueName = baseName + "_" + System.currentTimeMillis() + extension;
-            storePath = userDir + uniqueName;
+            storePath = userPath.resolve(uniqueName).toString();
             file.transferTo(Paths.get(storePath));
         }
 

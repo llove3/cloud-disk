@@ -151,11 +151,10 @@ public class UserController {
         if (file.getSize() > 2 * 1024 * 1024) {
             return "头像大小不能超过2MB";
         }
-        String avatarDir = uploadDir + "avatars/";
-        File dir = new File(avatarDir);
+        File dir = new File(uploadDir, "avatars");
         if (!dir.exists()) dir.mkdirs();
         String newFileName = user.getId() + "_" + UUID.randomUUID().toString() + ext;
-        File dest = new File(avatarDir + newFileName);
+        File dest = new File(dir, newFileName);
         try {
             file.transferTo(dest);
             String avatarUrl = "/avatars/" + newFileName;

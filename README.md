@@ -67,19 +67,16 @@ mysql -u root -p cloud_disk < src/main/resources/db/cloud_disk.sql
 
 | 变量 | 用途 |
 | --- | --- |
-| `DB_PASSWORD` | MySQL 密码（必需） |
-| `MAIL_USERNAME` | 发信邮箱地址（必需） |
-| `MAIL_PASSWORD` | SMTP 授权码（必需） |
+| `MYSQL_NAME` | MySQL 用户名（必需） |
+| `MYSQL_PSW` | MySQL 密码（必需） |
+| `SMTP_USERNAME` | 发信邮箱地址（必需） |
+| `SMTP_PASSWORD` | SMTP 授权码（必需） |
 | `DB_URL` | 数据库连接地址（可选，默认为本机 `cloud_disk` 数据库） |
-| `DB_USERNAME` | 数据库用户名（可选，默认为 `root`） |
 | `FILE_UPLOAD_DIR` | 上传文件目录（可选，默认为项目目录下的 `uploads`） |
 
-例如，可在 PowerShell 中设置环境变量后启动：
+设置好环境变量后，打开新的 PowerShell 窗口并启动：
 
 ```powershell
-$env:DB_PASSWORD = '<your-database-password>'
-$env:MAIL_USERNAME = '<your-email-address>'
-$env:MAIL_PASSWORD = '<your-smtp-authorization-code>'
 ./mvnw.cmd spring-boot:run
 ```
 

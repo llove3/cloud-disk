@@ -33,6 +33,9 @@ public class ShareService {
     @Autowired
     private ShareAccessLogMapper shareAccessLogMapper;
 
+    @Autowired
+    private FileService fileService;
+
     @Value("${file.upload-dir}")
     private String uploadDir;
 
@@ -52,6 +55,9 @@ public class ShareService {
         FileInfo file = fileMapper.findByIdAndUserId(fileId, userId);
         if (file == null) {
             throw new RuntimeException("文件不存在或无权分享");
+        }
+        if (file.isFolder()) {
+            throw new IllegalArgumentException("文件夹请使用打包分享");
         }
         String code = generateShareCode();
         Date expireTime = null;
@@ -75,11 +81,7 @@ public class ShareService {
         if (fileIds == null || fileIds.isEmpty()) {
             throw new RuntimeException("请至少选择一个文件");
         }
-        String safeZipName = (zipName != null && !zipName.trim().isEmpty())
-                ? zipName.trim().replaceAll("[\\\\/:*?\"<>|]", "_") : "打包文件";
-        if (!safeZipName.toLowerCase().endsWith(".zip")) {
-            safeZipName += ".zip";
-        }
+        String safeZipName = FileService.zipName(zipName);
         Path userPath = Paths.get(uploadDir, String.valueOf(userId), "packages");
         if (!Files.exists(userPath)) {
             Files.createDirectories(userPath);
@@ -89,16 +91,10 @@ public class ShareService {
 
         try (FileOutputStream fos = new FileOutputStream(zipFilePath);
              ZipOutputStream zos = new ZipOutputStream(fos)) {
-            for (Long fileId : fileIds) {
-                FileInfo file = fileMapper.findByIdAndUserId(fileId, userId);
-                if (file == null || file.getFileSize() == 0) continue;
-                Path sourcePath = Paths.get(file.getFilePath());
-                if (!Files.exists(sourcePath)) continue;
-                ZipEntry entry = new ZipEntry(file.getFileName());
-                zos.putNextEntry(entry);
-                Files.copy(sourcePath, zos);
-                zos.closeEntry();
-            }
+            fileService.writeSelectedToZip(zos, fileIds, userId);
+        } catch (IOException | RuntimeException error) {
+            Files.deleteIfExists(Path.of(zipFilePath));
+            throw error;
         }
 
         FileInfo packageFile = new FileInfo();

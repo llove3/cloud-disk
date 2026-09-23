@@ -14,11 +14,11 @@ export function post(path, fields) {
   return api(path, { method: 'POST', body: new URLSearchParams(fields) })
 }
 
-export async function stream(path, question, onEvent, password = undefined, fileIds = undefined) {
+export async function stream(path, question, onEvent, fileIds = undefined) {
   const response = await fetch(path, {
     method: 'POST', credentials: 'same-origin',
     headers: { 'Content-Type': 'application/json', Accept: 'text/event-stream' },
-    body: JSON.stringify({ question, password, fileIds })
+    body: JSON.stringify({ question, fileIds })
   })
   if (!response.ok) {
     const body = await response.text()

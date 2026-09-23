@@ -23,6 +23,8 @@ const message = ref('')
 const busy = ref(false)
 const shareOpen = ref(false)
 const shareForm = ref({ password: '', expireDays: '', maxVisits: '' })
+const zipName = ref('我的打包文件')
+const packageError = ref('')
 const shareUrl = ref('')
 const view = ref('cards')
 const dialog = ref('')
@@ -37,6 +39,25 @@ const canPreview = ref(false)
 const isFolder = file => file?.folder === true
 const showVersions = ref(false)
 const bytes = value => value == null ? '—' : value < 1024 ? `${value} B` : value < 1048576 ? `${(value / 1024).toFixed(1)} KB` : `${(value / 1048576).toFixed(1)} MB`
+
+async function downloadPackage() {
+  try {
+    packageError.value = ''
+    const name = zipName.value.trim()
+    if (!name) throw new Error('请输入打包名称')
+    const params = new URLSearchParams({ fileIds: selected.value.join(','), zipName: name })
+    const response = await fetch(`/api/file/batch-download?${params}`, { credentials: 'same-origin' })
+    if (!response.ok) throw new Error(await response.text() || '打包失败')
+    const url = window.URL.createObjectURL(await response.blob())
+    const link = document.createElement('a')
+    link.href = url
+    link.download = decodeURIComponent(response.headers.get('content-disposition')?.match(/filename\*=UTF-8''([^;]+)/)?.[1] || '我的打包文件.zip')
+    link.click()
+    window.setTimeout(() => window.URL.revokeObjectURL(url), 1000)
+    dialog.value = ''
+    message.value = '打包下载已开始'
+  } catch (error) { packageError.value = error.message; message.value = error.message }
+}
 
 async function load() {
   try {
@@ -88,7 +109,7 @@ async function action(name, file) {
   active.value = file
   if (name === 'download') { window.location.href = `/api/file/download?fileId=${file.id}`; return }
   if (name === 'versions') { showVersions.value = true; versions.value = await api(`/api/file/versions?fileId=${file.id}`) || []; indexStatus.value = await api(`/api/ai/index/${file.id}`); return }
-  if (name === 'share') { shareOpen.value = true; shareUrl.value = ''; return }
+  if (name === 'share') { packageError.value = ''; zipName.value = isFolder(file) ? file.fileName : '我的打包文件'; shareOpen.value = true; shareUrl.value = ''; return }
   if (name === 'rename' || name === 'remark') { dialogValue.value = name === 'rename' ? file.fileName : file.remark || ''; dialog.value = name; return }
   if (name === 'move') { moveIds.value = [file.id]; dialog.value = 'move'; return }
   if (name === 'ask') { router.push({ path: '/ai', query: { fileId: file.id } }); return }
@@ -97,22 +118,26 @@ async function action(name, file) {
 }
 async function batch(name) {
   if (!selected.value.length) return
-  const ids = selected.value.join(',')
-  if (name === 'download') { window.location.href = `/api/file/batch-download?fileIds=${ids}`; return }
+  if (name === 'download') { zipName.value = '我的打包文件'; packageError.value = ''; dialog.value = 'batch-download'; return }
   if (name === 'delete') dialog.value = 'batch-delete'
   if (name === 'move') { moveIds.value = [...selected.value]; dialog.value = 'move' }
-  if (name === 'share') { shareOpen.value = true; active.value = null; shareUrl.value = '' }
+  if (name === 'share') { zipName.value = '我的打包文件'; packageError.value = ''; shareOpen.value = true; active.value = null; shareUrl.value = '' }
 }
 async function createShare() {
+  packageError.value = ''
   const fields = { password: shareForm.value.password, expireDays: shareForm.value.expireDays, maxVisits: shareForm.value.maxVisits }
   try {
-    const result = active.value ? await post('/api/share/create', { ...fields, fileId: active.value.id })
-      : await post('/api/file/create-package-share', { ...fields, fileIds: selected.value.join(',') })
+    const result = active.value && !isFolder(active.value)
+      ? await post('/api/share/create', { ...fields, fileId: active.value.id })
+      : await post('/api/file/create-package-share', {
+          ...fields, fileIds: active.value ? String(active.value.id) : selected.value.join(','),
+          zipName: zipName.value
+        })
     const share = result.share || result
     if (result.success === false) throw new Error(result.message)
     shareUrl.value = `${window.location.origin}/s/${share.shareCode}`
     message.value = '分享已创建'
-  } catch (error) { message.value = error.message }
+  } catch (error) { packageError.value = error.message; message.value = error.message }
 }
 async function search() {
   try {
@@ -142,6 +167,10 @@ async function confirmDialog() {
   try {
     const name = dialog.value
     let result
+    if (name === 'batch-download') {
+      await downloadPackage()
+      return
+    }
     if (name === 'folder' && dialogValue.value.trim()) result = await run('/api/file/folder/create', { folderName: dialogValue.value.trim(), parentId: parentId.value })
     if (name === 'rename' && dialogValue.value.trim()) result = await run('/api/file/rename', { fileId: active.value.id, newName: dialogValue.value.trim() })
     if (name === 'remark') result = await run('/api/file/update-remark', { fileId: active.value.id, remark: dialogValue.value })
@@ -180,8 +209,8 @@ async function chooseFolder(targetParentId) {
   </section>
   <section v-if="active && showVersions" class="panel"><div class="inline"><h2>{{ active.fileName }} · 历史版本</h2><button class="subtle" @click="showVersions = false">关闭</button></div><div class="inline index-line"><span>索引状态：{{ indexStatus?.status || '暂无任务' }}<span v-if="indexStatus?.lastError"> · {{ indexStatus.lastError }}</span></span><button v-if="indexStatus?.status === 'FAILED'" class="secondary" @click="retryIndex">重试索引</button><button class="subtle" @click="refreshIndex">刷新</button></div><div v-for="version in versions" :key="version.id" class="version-row"><span>第 {{ version.versionNumber }} 版 · {{ bytes(version.fileSize) }}</span><div class="inline"><button @click="versionAction('preview', version)">预览</button><button @click="versionAction('download', version)">下载</button><button @click="versionAction('rollback', version)">回滚</button><button class="danger-text" @click="versionAction('delete', version)">删除</button></div></div><p v-if="!versions.length" class="muted">暂无历史版本。</p></section>
   </div></div>
-  <AppDialog v-if="shareOpen" :title="active ? '分享文件' : '打包分享'" confirm-text="创建分享" @close="shareOpen = false" @confirm="createShare"><label>提取码<input v-model="shareForm.password" placeholder="可留空" /></label><label>有效天数<input v-model="shareForm.expireDays" type="number" min="1" placeholder="不限" /></label><label>访问次数<input v-model="shareForm.maxVisits" type="number" min="1" placeholder="不限" /></label><p v-if="shareUrl"><a :href="shareUrl" target="_blank" rel="noopener">{{ shareUrl }}</a></p></AppDialog>
+  <AppDialog v-if="shareOpen" :title="active && !isFolder(active) ? '分享文件' : '打包分享'" confirm-text="创建分享" @close="shareOpen = false" @confirm="createShare"><label v-if="!active || isFolder(active)">打包文件名称<input v-model="zipName" maxlength="120" placeholder="我的打包文件" /></label><label>提取码<input v-model="shareForm.password" placeholder="可留空" /></label><label>有效天数<input v-model="shareForm.expireDays" type="number" min="1" placeholder="不限" /></label><label>访问次数<input v-model="shareForm.maxVisits" type="number" min="1" placeholder="不限" /></label><p v-if="packageError" class="error" role="alert">{{ packageError }}</p><p v-if="shareUrl"><a :href="shareUrl" target="_blank" rel="noopener">{{ shareUrl }}</a></p></AppDialog>
   <FolderPicker v-if="dialog === 'move'" :exclude-ids="moveIds" @close="dialog = ''" @choose="chooseFolder" />
-  <AppDialog v-else-if="dialog" :title="({ folder: '新建文件夹', rename: '重命名', remark: '编辑备注', delete: '移入回收站', 'batch-delete': '批量移入回收站', 'version-rollback': '回滚版本', 'version-delete': '删除历史版本' })[dialog]" :busy="dialogBusy" @close="dialog = ''" @confirm="confirmDialog"><label v-if="['folder', 'rename', 'remark'].includes(dialog)">{{ dialog === 'folder' ? '文件夹名称' : dialog === 'rename' ? '新名称' : '备注' }}<input v-model="dialogValue" :required="dialog !== 'remark'" autofocus /></label><p v-else class="muted">{{ dialog === 'version-delete' ? '此历史版本删除后无法恢复。' : dialog === 'version-rollback' ? `确定回滚到第 ${activeVersion?.versionNumber} 版？` : '确定将所选项目移入回收站？' }}</p></AppDialog>
+  <AppDialog v-else-if="dialog" :title="({ folder: '新建文件夹', rename: '重命名', remark: '编辑备注', delete: '移入回收站', 'batch-delete': '批量移入回收站', 'batch-download': '打包下载', 'version-rollback': '回滚版本', 'version-delete': '删除历史版本' })[dialog]" :busy="dialogBusy" @close="dialog = ''" @confirm="confirmDialog"><label v-if="dialog === 'batch-download'">打包文件名称<input v-model="zipName" maxlength="120" autofocus /></label><p v-if="dialog === 'batch-download' && packageError" class="error" role="alert">{{ packageError }}</p><label v-if="['folder', 'rename', 'remark'].includes(dialog)">{{ dialog === 'folder' ? '文件夹名称' : dialog === 'rename' ? '新名称' : '备注' }}<input v-model="dialogValue" :required="dialog !== 'remark'" autofocus /></label><p v-if="!['batch-download', 'folder', 'rename', 'remark'].includes(dialog)" class="muted">{{ dialog === 'version-delete' ? '此历史版本删除后无法恢复。' : dialog === 'version-rollback' ? `确定回滚到第 ${activeVersion?.versionNumber} 版？` : '确定将所选项目移入回收站？' }}</p></AppDialog>
   <div v-if="previewUrl" class="modal-backdrop" @click.self="previewUrl = ''"><section class="preview-modal"><div class="inline"><h2>{{ previewName }}</h2><a :href="previewDownloadUrl" class="secondary">下载文件</a><button class="subtle" @click="previewUrl = ''">关闭</button></div><iframe v-if="canPreview" :src="previewUrl" title="文件预览"></iframe><p v-else class="empty">浏览器暂不支持预览这种格式，请下载后查看。</p></section></div>
 </template>

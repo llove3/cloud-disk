@@ -379,18 +379,53 @@ public class FileService {
     public byte[] batchDownloadAsZip(List<Long> fileIds, Long userId) throws IOException {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         try (ZipOutputStream zos = new ZipOutputStream(baos)) {
-            for (Long fileId : fileIds) {
-                FileInfo file = getFile(fileId, userId);
-                if (file == null || file.getFileSize() == 0) continue;
-                Path path = Paths.get(file.getFilePath());
-                if (!Files.exists(path)) continue;
-                String entryName = file.getFileName();
-                zos.putNextEntry(new ZipEntry(entryName));
-                Files.copy(path, zos);
-                zos.closeEntry();
-            }
+            writeSelectedToZip(zos, fileIds, userId);
         }
         return baos.toByteArray();
+    }
+
+    public void writeSelectedToZip(ZipOutputStream zos, List<Long> fileIds, Long userId) throws IOException {
+        if (fileIds == null || fileIds.isEmpty()) throw new IllegalArgumentException("请至少选择一个文件");
+        Set<String> entries = new HashSet<>();
+        int count = 0;
+        for (Long fileId : new LinkedHashSet<>(fileIds)) {
+            FileInfo file = getFile(fileId, userId);
+            if (file == null) throw new IllegalArgumentException("选中的文件不存在或无权访问");
+            count += addSelectedToZip(zos, file, userId, "", entries);
+        }
+        if (count == 0) throw new IllegalArgumentException("所选文件夹中没有可打包的文件");
+    }
+
+    private int addSelectedToZip(ZipOutputStream zos, FileInfo file, Long userId,
+                                 String parent, Set<String> entries) throws IOException {
+        String name = file.getFileName().replaceAll("[\\\\/]", "_");
+        String entry = parent + name;
+        if (file.isFolder()) {
+            String directory = entry + "/";
+            if (!entries.add(directory)) throw new IllegalArgumentException("打包文件中存在同名路径：" + directory);
+            zos.putNextEntry(new ZipEntry(directory));
+            zos.closeEntry();
+            int count = 0;
+            for (FileInfo child : fileMapper.findByUserIdAndParentId(userId, file.getId()))
+                count += addSelectedToZip(zos, child, userId, directory, entries);
+            return count;
+        }
+        Path path = Paths.get(file.getFilePath());
+        if (!Files.isRegularFile(path)) throw new IOException("文件不存在：" + file.getFileName());
+        if (!entries.add(entry)) throw new IllegalArgumentException("打包文件中存在同名路径：" + entry);
+        zos.putNextEntry(new ZipEntry(entry));
+        Files.copy(path, zos);
+        zos.closeEntry();
+        return 1;
+    }
+
+    public static String zipName(String name) {
+        String value = name == null || name.isBlank() ? "我的打包文件" : name.trim();
+        if (value.matches(".*[\\\\/:*?\"<>|].*") || value.endsWith(".")
+                || value.equalsIgnoreCase(".zip")
+                || value.matches("(?i)(con|prn|aux|nul|com[1-9]|lpt[1-9])(\\.zip)?")
+                || value.length() > 120) throw new IllegalArgumentException("打包名称含非法字符或过长");
+        return value.toLowerCase(Locale.ROOT).endsWith(".zip") ? value : value + ".zip";
     }
 
     public byte[] downloadFolderAsZip(Long folderId, Long userId) throws IOException {

@@ -23,6 +23,7 @@ public class AiSearchService {
     private volatile boolean indexReady;
 
     public record Source(int number, Long fileId, String fileName, int version, String snippet) {}
+    public record Document(Source source, String content) {}
 
     public AiSearchService(@Value("${ai.elasticsearch.url}") String url,
                            EmbeddingModel embeddings, FileMapper files) {
@@ -87,26 +88,28 @@ public class AiSearchService {
         List<Object> filters = new ArrayList<>();
         filters.add(Map.of("term", Map.of("ownerId", userId)));
         if (fileIds != null && !fileIds.isEmpty()) filters.add(Map.of("terms", Map.of("fileId", fileIds)));
-        if (isSummaryQuestion(query)) {
-            JsonNode overview = es.post().uri(INDEX + "/_search").body(Map.of(
-                    "size", 20, "query", Map.of("bool", Map.of("filter", filters)),
-                    "collapse", Map.of("field", "fileId", "inner_hits", Map.of("name", "passages", "size", 2))))
-                    .retrieve().body(JsonNode.class);
-            List<JsonNode> passages = new ArrayList<>();
-            for (JsonNode hit : overview.path("hits").path("hits")) {
-                JsonNode inner = hit.path("inner_hits").path("passages").path("hits").path("hits");
-                if (inner.isArray() && !inner.isEmpty()) inner.forEach(passages::add);
-                else passages.add(hit);
-            }
-            return validSources(userId, passages, limit);
-        }
         Map<String, Object> filter = Map.of("bool", Map.of("filter", filters));
+        boolean exact = query.trim().matches("[\\p{IsHan}]{1,4}|[A-Za-z]+");
+        if (exact) {
+            JsonNode matches = es.post().uri(INDEX + "/_search").body(Map.of(
+                    "size", 100, "query", Map.of("bool", Map.of("must",
+                            Map.of("match_phrase", Map.of("content", query.trim())), "filter", filters)),
+                    "collapse", Map.of("field", "fileId")))
+                    .retrieve().body(JsonNode.class);
+            List<JsonNode> hits = new ArrayList<>();
+            for (JsonNode hit : matches.path("hits").path("hits"))
+                if (hit.path("_source").path("content").asText().toLowerCase(Locale.ROOT)
+                        .contains(query.trim().toLowerCase(Locale.ROOT))) hits.add(hit);
+            return validSources(userId, hits, limit).stream()
+                    .map(source -> new Source(source.number(), source.fileId(), source.fileName(),
+                            source.version(), excerpt(source.snippet(), query.trim()))).toList();
+        }
         JsonNode keyword = es.post().uri(INDEX + "/_search").body(Map.of(
-                "size", 20, "query", Map.of("bool", Map.of("must", Map.of("match", Map.of("content", Map.of("query", query, "minimum_should_match", "70%"))), "filter", filters))))
+                "size", 50, "query", Map.of("bool", Map.of("must", Map.of("match", Map.of("content", Map.of("query", query, "minimum_should_match", "70%"))), "filter", filters))))
                 .retrieve().body(JsonNode.class);
         JsonNode vector = es.post().uri(INDEX + "/_search").body(Map.of(
-                "size", 20, "knn", Map.of("field", "vector", "query_vector", embed(query),
-                        "k", 20, "num_candidates", 100, "similarity", 0.50, "filter", filter)))
+                "size", 50, "knn", Map.of("field", "vector", "query_vector", embed(query),
+                        "k", 50, "num_candidates", 200, "similarity", 0.50, "filter", filter)))
                 .retrieve().body(JsonNode.class);
         Map<String, Double> scores = new HashMap<>();
         Map<String, JsonNode> hits = new HashMap<>();
@@ -114,12 +117,78 @@ public class AiSearchService {
         addRanked(vector, scores, hits);
         List<String> ranked = scores.entrySet().stream().sorted(Map.Entry.<String, Double>comparingByValue().reversed())
                 .map(Map.Entry::getKey).toList();
-        return validSources(userId, ranked.stream().map(hits::get).toList(), limit);
+        List<Source> candidates = validSources(userId, ranked.stream().map(hits::get).toList(), 50);
+        List<Source> diverse = new ArrayList<>();
+        Map<Long, Integer> perFile = new HashMap<>();
+        int perFileLimit = fileIds != null && fileIds.size() == 1 ? limit : 2;
+        for (Source candidate : candidates) {
+            if (perFile.getOrDefault(candidate.fileId(), 0) >= perFileLimit) continue;
+            perFile.merge(candidate.fileId(), 1, Integer::sum);
+            diverse.add(new Source(diverse.size() + 1, candidate.fileId(), candidate.fileName(),
+                    candidate.version(), candidate.snippet()));
+            if (diverse.size() >= limit) break;
+        }
+        return diverse;
     }
 
-    private boolean isSummaryQuestion(String query) {
-        return List.of("讲了啥", "讲了什么", "说了什么", "总结", "概括", "摘要", "主要内容", "内容是什么", "概述")
+    public boolean isOverviewQuestion(String query) {
+        return List.of("讲了啥", "讲了什么", "说了什么", "总结", "概括", "摘要", "主要内容",
+                        "内容是什么", "概述", "有什么", "有哪些", "什么要求")
                 .stream().anyMatch(query::contains);
+    }
+
+    public List<Document> overview(Long userId, String question, List<Long> fileIds) {
+        ensureIndex();
+        List<Object> filters = new ArrayList<>();
+        filters.add(Map.of("term", Map.of("ownerId", userId)));
+        if (fileIds != null && !fileIds.isEmpty()) filters.add(Map.of("terms", Map.of("fileId", fileIds)));
+        JsonNode response = es.post().uri(INDEX + "/_search").body(Map.of(
+                "size", 1000, "query", Map.of("bool", Map.of("filter", filters))))
+                .retrieve().body(JsonNode.class);
+        if (response.path("hits").path("total").path("value").asLong() > 1000)
+            throw new IllegalArgumentException("相关文档过多，请缩小文件范围后重试");
+        String topic = question.replaceAll("(?i)(有什么|有哪些|什么要求|总结|概括|摘要|概述|讲了啥|讲了什么|说了什么|主要内容|内容是什么|这几份|这些|两份|几份|一份|所有|全部|文档|文件|要求|任务|题目|关于|请|帮我|一下|我的|里面|其中|的|里|中|？|\\?)", "").trim();
+        Map<Long, List<JsonNode>> groups = new LinkedHashMap<>();
+        for (JsonNode hit : response.path("hits").path("hits"))
+            groups.computeIfAbsent(hit.path("_source").path("fileId").asLong(), unused -> new ArrayList<>()).add(hit);
+        List<Document> documents = new ArrayList<>();
+        int total = 0;
+        for (Map.Entry<Long, List<JsonNode>> group : groups.entrySet()) {
+            FileInfo file = files.findByIdAndUserId(group.getKey(), userId);
+            if (file == null || file.getFilePath() == null || file.getFilePath().isEmpty()
+                    || file.getIndexGeneration() == null) continue;
+            if (!topic.isEmpty() && !file.getFileName().contains(topic)
+                    && group.getValue().stream().noneMatch(hit -> hit.path("_source").path("content").asText().contains(topic)))
+                continue;
+            StringBuilder content = new StringBuilder();
+            group.getValue().sort(Comparator.comparingInt(hit -> chunkNumber(hit.path("_id").asText())));
+            for (JsonNode hit : group.getValue()) {
+                JsonNode data = hit.path("_source");
+                if (file.getIndexGeneration() != data.path("generation").asLong()
+                        || file.getVersion() != data.path("version").asInt()) continue;
+                content.append(data.path("content").asText()).append('\n');
+            }
+            if (content.isEmpty()) continue;
+            total += content.length();
+            if (total > 60_000) throw new IllegalArgumentException("相关文档超过 6 万字，请缩小文件范围后重试");
+            int number = documents.size() + 1;
+            documents.add(new Document(new Source(number, file.getId(), file.getFileName(),
+                    file.getVersion(), excerpt(content.toString(), topic)), content.toString()));
+        }
+        return documents;
+    }
+
+    private int chunkNumber(String id) {
+        try { return Integer.parseInt(id.substring(id.lastIndexOf(':') + 1)); }
+        catch (Exception ignored) { return 0; }
+    }
+
+    private String excerpt(String content, String query) {
+        int at = query.isEmpty() ? 0 : content.toLowerCase(Locale.ROOT).indexOf(query.toLowerCase(Locale.ROOT));
+        if (at < 0) at = 0;
+        int from = Math.max(0, at - 70);
+        int to = Math.min(content.length(), at + Math.max(query.length(), 1) + 110);
+        return (from > 0 ? "…" : "") + content.substring(from, to).trim() + (to < content.length() ? "…" : "");
     }
 
     private List<Source> validSources(Long userId, List<JsonNode> ranked, int limit) {

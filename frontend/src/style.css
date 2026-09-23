@@ -54,3 +54,10 @@ input:focus,select:focus,textarea:focus{outline:2px solid #a8cda6}
 @media(max-width:640px){.topbar{margin:0 0 17px}.topbar>.muted,.recycle-shortcut span{display:none}.sidebar-flora{display:none}.file-cards{grid-template-columns:repeat(2,minmax(0,1fr))}.file-card{padding:11px}.card-actions button{font-size:11px}}
 .sidebar-flora{display:block;width:145px;height:125px;align-self:center;color:#89af85;transform:rotate(-8deg);opacity:.88;flex-shrink:0}
 @media(max-width:640px){.sidebar-flora{display:none}}
+.markdown-text{white-space:normal;line-height:1.8;overflow-wrap:anywhere}
+.markdown-text h2,.markdown-text h3{margin:1.1em 0 .4em;color:#35543b}
+.markdown-text p{margin:.55em 0}
+.markdown-text ul,.markdown-text ol{padding-left:1.4em;margin:.5em 0}
+.markdown-text li{margin:.3em 0}
+.markdown-text code{background:#eef4e9;border-radius:4px;padding:.1em .3em}
+.markdown-text pre{background:#eef4e9;border-radius:8px;padding:12px;overflow:auto}

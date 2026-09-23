@@ -6,6 +6,7 @@ import com.example.clouddisk.entity.ShareAccessLog;
 import com.example.clouddisk.entity.User;
 import com.example.clouddisk.service.FileService;
 import com.example.clouddisk.service.ShareService;
+import com.example.clouddisk.service.ShareSummaryService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,6 +31,23 @@ public class ShareController {
 
     @Autowired
     private FileService fileService;
+
+    @Autowired
+    private ShareSummaryService summaryService;
+
+    public record SummaryRequest(String password) {}
+
+    @PostMapping("/s/{code}/summary")
+    public ResponseEntity<?> summary(@PathVariable String code,
+                                     @RequestBody SummaryRequest body,
+                                     HttpServletRequest request) {
+        try {
+            return ResponseEntity.ok(summaryService.summary(code, body == null ? null : body.password(),
+                    request.getRemoteAddr(), request.getHeader("User-Agent")));
+        } catch (RuntimeException error) {
+            return ResponseEntity.badRequest().body(error.getMessage());
+        }
+    }
 
     @PostMapping("/api/share/create")
     public Share createShare(@RequestParam Long fileId,

@@ -13,7 +13,7 @@ public interface FileMapper {
     int insert(FileInfo file);
 
     @Select("SELECT * FROM file WHERE user_id = #{userId} AND parent_id = #{parentId} AND deleted = FALSE " +
-            "AND (file_path NOT LIKE '%/packages/%' OR file_path = '') " +
+            "AND (REPLACE(file_path, CHAR(92), '/') NOT LIKE '%/packages/%' OR file_path = '') " +
             "ORDER BY CASE WHEN file_size = 0 AND file_path = '' THEN 0 ELSE 1 END, file_name")
     List<FileInfo> findByUserIdAndParentId(@Param("userId") Long userId, @Param("parentId") Long parentId);
 
@@ -52,7 +52,7 @@ public interface FileMapper {
     int countReferencesByPath(@Param("path") String path);
 
     @Select("SELECT * FROM file WHERE user_id = #{userId} AND deleted = FALSE " +
-            "AND (file_path NOT LIKE '%/packages/%' OR file_path = '')")
+            "AND (REPLACE(file_path, CHAR(92), '/') NOT LIKE '%/packages/%' OR file_path = '')")
     List<FileInfo> findByUserIdAndDeletedFalse(@Param("userId") Long userId);
 
     @Select("SELECT * FROM file WHERE file_md5 = #{md5} AND file_size = #{fileSize} AND deleted = FALSE LIMIT 1")
@@ -62,15 +62,15 @@ public interface FileMapper {
     int countByMd5AndSizeExcludingId(@Param("md5") String md5, @Param("fileSize") Long fileSize, @Param("id") Long id);
 
     @Select("SELECT * FROM file WHERE user_id = #{userId} AND deleted = FALSE AND file_size > 0 " +
-            "AND (file_path NOT LIKE '%/packages/%' OR file_path = '')")
+            "AND (REPLACE(file_path, CHAR(92), '/') NOT LIKE '%/packages/%' OR file_path = '')")
     List<FileInfo> findAllNonFolderFilesByUserId(@Param("userId") Long userId);
 
     @Select("SELECT * FROM file WHERE user_id = #{userId} AND deleted = FALSE AND file_size > 0 AND file_name LIKE CONCAT('%', #{keyword}, '%') " +
-            "AND (file_path NOT LIKE '%/packages/%' OR file_path = '')")
+            "AND (REPLACE(file_path, CHAR(92), '/') NOT LIKE '%/packages/%' OR file_path = '')")
     List<FileInfo> searchByName(@Param("userId") Long userId, @Param("keyword") String keyword);
 
     @Select("SELECT * FROM file WHERE user_id = #{userId} AND deleted = FALSE AND starred = TRUE " +
-            "AND (file_path NOT LIKE '%/packages/%' OR file_path = '')")
+            "AND (REPLACE(file_path, CHAR(92), '/') NOT LIKE '%/packages/%' OR file_path = '')")
     List<FileInfo> findStarredByUserId(@Param("userId") Long userId);
 
     @Select("SELECT * FROM file WHERE user_id = #{userId} AND deleted = TRUE AND deleted_at < DATE_SUB(NOW(), INTERVAL #{days} DAY)")

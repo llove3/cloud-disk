@@ -1,12 +1,8 @@
 package com.example.clouddisk.ai;
 
 import com.example.clouddisk.entity.FileInfo;
-import com.example.clouddisk.entity.Share;
 import com.example.clouddisk.entity.User;
-import com.example.clouddisk.mapper.ShareMapper;
 import com.example.clouddisk.mapper.FileMapper;
-import com.example.clouddisk.service.ShareService;
-import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -18,19 +14,14 @@ import java.util.List;
 
 @RestController
 public class AiChatController {
-    public record ChatRequest(String question, String password, Long fileId, List<Long> fileIds) {}
+    public record ChatRequest(String question, Long fileId, List<Long> fileIds) {}
     private final AiChatService chat;
     private final AiSearchService search;
-    private final ShareService shares;
-    private final ShareMapper shareMapper;
     private final FileMapper fileMapper;
 
-    public AiChatController(AiChatService chat, AiSearchService search,
-                            ShareService shares, ShareMapper shareMapper, FileMapper fileMapper) {
+    public AiChatController(AiChatService chat, AiSearchService search, FileMapper fileMapper) {
         this.chat = chat;
         this.search = search;
-        this.shares = shares;
-        this.shareMapper = shareMapper;
         this.fileMapper = fileMapper;
     }
 
@@ -55,16 +46,6 @@ public class AiChatController {
                 throw new ResponseStatusException(HttpStatus.NOT_FOUND, "文件不存在或不可问答");
         }
         return chat.chat(owner, request.question(), ids, true);
-    }
-
-    @PostMapping(value = "/s/{code}/ai/chat", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public SseEmitter shareChat(@PathVariable String code,
-                                @RequestBody ChatRequest request, HttpServletRequest http) {
-        Share share = shareMapper.findByCode(code);
-        if (share == null || Boolean.TRUE.equals(share.getIsPackage()))
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "仅单文件分享支持问答");
-        FileInfo file = shares.getFileByShareCode(code, request.password(), http.getRemoteAddr(), http.getHeader("User-Agent"));
-        return chat.chat(file.getUserId(), request.question(), List.of(file.getId()), false);
     }
 
     private Long userId(HttpSession session) {

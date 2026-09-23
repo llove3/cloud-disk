@@ -1,20 +1,19 @@
 <script setup>
 import { ref } from 'vue'
 import { useRoute } from 'vue-router'
-import { stream } from '../api'
+import MarkdownText from '../components/MarkdownText.vue'
 
 const code = useRoute().params.code
 const password = ref('')
 const message = ref('')
-const question = ref('')
-const answer = ref('')
-const sources = ref([])
-const asking = ref(false)
-const askError = ref('')
-const asked = ref(false)
+const summary = ref(null)
+const loading = ref(false)
 const previewUrl = ref('')
+
 async function fileBlob() {
-  const response = await fetch(`/s/${encodeURIComponent(code)}/verify`, { method: 'POST', body: new URLSearchParams({ password: password.value }) })
+  const response = await fetch(`/s/${encodeURIComponent(code)}/verify`, {
+    method: 'POST', body: new URLSearchParams({ password: password.value })
+  })
   if (!response.ok) throw new Error(await response.text())
   return response
 }
@@ -34,30 +33,58 @@ async function preview() {
   try {
     const response = await fileBlob()
     const filename = decodeURIComponent(response.headers.get('content-disposition')?.match(/filename\*=UTF-8''([^;]+)/)?.[1] || 'shared-file')
-    if (!/\.(pdf|txt|md|png|jpe?g|gif|webp)$/i.test(filename)) { message.value = '浏览器暂不支持预览此格式，请使用下载。'; return }
+    if (!/\.(pdf|txt|md|png|jpe?g|gif|webp)$/i.test(filename)) {
+      message.value = '浏览器暂不支持预览此格式，请使用下载。'
+      return
+    }
     if (previewUrl.value) window.URL.revokeObjectURL(previewUrl.value)
     previewUrl.value = window.URL.createObjectURL(await response.blob())
   } catch (error) { message.value = error.message }
 }
-async function ask() {
-  if (!question.value.trim()) return
-  answer.value = ''
-  sources.value = []
-  askError.value = ''
-  asked.value = true
-  asking.value = true
+async function showSummary() {
+  summary.value = null
+  message.value = ''
+  loading.value = true
   try {
-    await stream(`/s/${encodeURIComponent(code)}/ai/chat`, question.value.trim(), (event, data) => {
-      if (event === 'source') sources.value.push(data)
-      if (event === 'token') answer.value += data
-      if (event === 'error') askError.value = data
-    }, password.value)
-  } catch (error) { askError.value = error.message }
-  finally { if (!answer.value && !askError.value) askError.value = '没有收到回答，请重试'; asking.value = false }
+    const response = await fetch(`/s/${encodeURIComponent(code)}/summary`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password: password.value })
+    })
+    if (!response.ok) {
+      const body = await response.text()
+      let reason = body
+      try { reason = JSON.parse(body).message || JSON.parse(body).detail || body } catch { /* plain response */ }
+      throw new Error(reason || '无法查看摘要')
+    }
+    summary.value = await response.json()
+  } catch (error) { message.value = error.message }
+  finally { loading.value = false }
 }
 </script>
 
 <template>
-  <div class="auth-wrap share-wrap"><section class="auth-card wide"><div class="brand"><span class="brand-mark">✿</span> Cloud Disk</div><p class="eyebrow">A FILE FOR YOU</p><h1>收到一份文件分享</h1><p class="muted">分享码 {{ code }}。输入提取码后可下载文件，单文件文档还可以提问。</p><label>提取码<input v-model="password" placeholder="如未设置可留空" /></label><div class="inline"><button class="primary" @click="download">验证并下载</button><button class="secondary" @click="preview">预览文件</button></div><p v-if="message" class="notice" role="status">{{ message }}</p><div class="share-ai"><h2>就这份文档提问</h2><p class="muted">每次提问都会计入分享访问次数，命中的片段会发送给 DeepSeek。</p><form class="inline" @submit.prevent="ask"><input v-model="question" placeholder="这份文档说了什么？" maxlength="1000" /><button class="primary" :disabled="asking || !question.trim()">{{ asking ? '回答中…' : '提问' }}</button></form><div v-if="asked" class="share-answer" role="status"><p v-if="asking && !answer" class="muted">正在查找文档依据并生成回答…</p><p v-if="answer" class="answer">{{ answer }}</p><p v-if="askError" class="error">{{ askError }}</p><div v-if="sources.length" class="sources"><button v-for="source in sources" :key="source.number" class="source" @click="preview">[{{ source.number }}] {{ source.fileName }} · v{{ source.version }}<small>{{ source.snippet }}</small></button></div></div></div></section></div>
+  <div class="auth-wrap share-wrap"><section class="auth-card wide">
+    <div class="brand"><span class="brand-mark">✿</span> Cloud Disk</div>
+    <p class="eyebrow">A FILE FOR YOU</p><h1>收到一份文件分享</h1>
+    <p class="muted">分享码 {{ code }}。输入提取码后可下载、预览或查看内容摘要。每次操作计入一次访问。</p>
+    <p class="muted">查看摘要时，可提取的文档文字会发送给 DeepSeek；图片等格式仅列出名称。</p>
+    <label>提取码<input v-model="password" placeholder="如未设置可留空" /></label>
+    <div class="inline wrap">
+      <button class="primary" @click="download">验证并下载</button>
+      <button class="secondary" @click="preview">预览文件</button>
+      <button class="secondary" :disabled="loading" @click="showSummary">{{ loading ? '正在整理摘要…' : '查看摘要' }}</button>
+    </div>
+    <p v-if="message" class="notice" role="status">{{ message }}</p>
+    <section v-if="summary" class="share-answer" role="status">
+      <h2>{{ summary.fileName }}</h2>
+      <p v-if="summary.notice" class="notice">{{ summary.notice }}</p>
+      <MarkdownText v-if="summary.summary" :text="summary.summary" />
+      <div v-if="summary.isPackage && summary.entries.length">
+        <h3>压缩包文件清单</h3>
+        <ul><li v-for="entry in summary.entries" :key="entry.name">{{ entry.name }} · {{ entry.type }}<span v-if="entry.reason" class="muted"> · {{ entry.reason }}</span></li></ul>
+      </div>
+    </section>
+  </section></div>
   <div v-if="previewUrl" class="modal-backdrop" @click.self="previewUrl = ''"><section class="preview-modal"><div class="inline"><h2>分享文件预览</h2><button class="subtle" @click="previewUrl = ''">关闭</button></div><iframe :src="previewUrl" title="分享文件预览"></iframe></section></div>
 </template>

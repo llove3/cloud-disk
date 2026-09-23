@@ -166,18 +166,23 @@ public class FileController {
     }
 
     @GetMapping("/batch-download")
-    public ResponseEntity<byte[]> batchDownload(@RequestParam List<Long> fileIds, HttpSession session) throws IOException {
+    public ResponseEntity<?> batchDownload(@RequestParam List<Long> fileIds,
+                                           @RequestParam(required = false) String zipName,
+                                           HttpSession session) {
         User user = (User) session.getAttribute("user");
         if (user == null) {
             return ResponseEntity.status(401).build();
         }
-        byte[] zipData = fileService.batchDownloadAsZip(fileIds, user.getId());
-        String zipName = "files_" + System.currentTimeMillis() + ".zip";
-        String encodedName = URLEncoder.encode(zipName, StandardCharsets.UTF_8).replaceAll("\\+", "%20");
-        return ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename*=UTF-8''" + encodedName)
-                .contentType(MediaType.APPLICATION_OCTET_STREAM)
-                .body(zipData);
+        try {
+            String encodedName = URLEncoder.encode(FileService.zipName(zipName), StandardCharsets.UTF_8).replaceAll("\\+", "%20");
+            byte[] zipData = fileService.batchDownloadAsZip(fileIds, user.getId());
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename*=UTF-8''" + encodedName)
+                    .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                    .body(zipData);
+        } catch (IOException | IllegalArgumentException error) {
+            return ResponseEntity.badRequest().body(error.getMessage());
+        }
     }
 
     @GetMapping("/versions")

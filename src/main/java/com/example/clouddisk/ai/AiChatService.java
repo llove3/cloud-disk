@@ -33,17 +33,17 @@ public class AiChatService {
         this.json = json;
     }
 
-    public SseEmitter chat(Long userId, String question, Long onlyFileId, boolean remember) {
+    public SseEmitter chat(Long userId, String question, List<Long> fileIds, boolean remember) {
         if (question == null || question.isBlank() || question.length() > 1000)
             throw new IllegalArgumentException("问题长度须在 1 到 1000 字之间");
         SseEmitter emitter = new SseEmitter(180_000L);
-        CompletableFuture.runAsync(() -> answer(userId, question.trim(), onlyFileId, remember, emitter));
+        CompletableFuture.runAsync(() -> answer(userId, question.trim(), fileIds, remember, emitter));
         return emitter;
     }
 
-    void answer(Long userId, String question, Long onlyFileId, boolean remember, SseEmitter emitter) {
+    void answer(Long userId, String question, List<Long> fileIds, boolean remember, SseEmitter emitter) {
         try {
-            List<Source> sources = search.search(userId, question, onlyFileId, 6);
+            List<Source> sources = search.search(userId, question, fileIds, 6);
             for (Source source : sources) send(emitter, "source", source);
             if (sources.isEmpty()) {
                 send(emitter, "token", "未找到可用文档依据。请先上传文档并等待索引完成，或换一个问题。");

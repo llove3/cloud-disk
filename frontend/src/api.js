@@ -14,13 +14,18 @@ export function post(path, fields) {
   return api(path, { method: 'POST', body: new URLSearchParams(fields) })
 }
 
-export async function stream(path, question, onEvent, password = undefined, fileId = undefined) {
+export async function stream(path, question, onEvent, password = undefined, fileIds = undefined) {
   const response = await fetch(path, {
     method: 'POST', credentials: 'same-origin',
     headers: { 'Content-Type': 'application/json', Accept: 'text/event-stream' },
-    body: JSON.stringify({ question, password, fileId })
+    body: JSON.stringify({ question, password, fileIds })
   })
-  if (!response.ok) throw new Error(await response.text())
+  if (!response.ok) {
+    const body = await response.text()
+    let message = body
+    try { message = JSON.parse(body).message || body } catch { /* plain text response */ }
+    throw new Error(message || '请求失败')
+  }
   const reader = response.body.getReader()
   const decoder = new TextDecoder()
   let pending = ''

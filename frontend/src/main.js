@@ -3,6 +3,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 import App from './App.vue'
 import AuthView from './views/AuthView.vue'
 import FilesView from './views/FilesView.vue'
+import AiView from './views/AiView.vue'
 import RecycleView from './views/RecycleView.vue'
 import SharesView from './views/SharesView.vue'
 import ProfileView from './views/ProfileView.vue'
@@ -15,6 +16,7 @@ const router = createRouter({ history: createWebHistory(), routes: [
   { path: '/register', component: AuthView, props: { mode: 'register' }, meta: { public: true } },
   { path: '/forgot-password', component: AuthView, props: { mode: 'forgot' }, meta: { public: true } },
   { path: '/files', component: FilesView },
+  { path: '/ai', component: AiView },
   { path: '/recycle', component: RecycleView },
   { path: '/shares', component: SharesView },
   { path: '/profile', component: ProfileView },

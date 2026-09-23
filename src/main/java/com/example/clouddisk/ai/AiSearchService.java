@@ -81,15 +81,28 @@ public class AiSearchService {
         es.post().uri(INDEX + "/_refresh").retrieve().toBodilessEntity();
     }
 
-    public List<Source> search(Long userId, String query, Long onlyFileId, int limit) {
+    public List<Source> search(Long userId, String query, List<Long> fileIds, int limit) {
         if (query == null || query.isBlank()) return List.of();
         ensureIndex();
         List<Object> filters = new ArrayList<>();
         filters.add(Map.of("term", Map.of("ownerId", userId)));
-        if (onlyFileId != null) filters.add(Map.of("term", Map.of("fileId", onlyFileId)));
+        if (fileIds != null && !fileIds.isEmpty()) filters.add(Map.of("terms", Map.of("fileId", fileIds)));
+        if (isSummaryQuestion(query)) {
+            JsonNode overview = es.post().uri(INDEX + "/_search").body(Map.of(
+                    "size", 20, "query", Map.of("bool", Map.of("filter", filters)),
+                    "collapse", Map.of("field", "fileId", "inner_hits", Map.of("name", "passages", "size", 2))))
+                    .retrieve().body(JsonNode.class);
+            List<JsonNode> passages = new ArrayList<>();
+            for (JsonNode hit : overview.path("hits").path("hits")) {
+                JsonNode inner = hit.path("inner_hits").path("passages").path("hits").path("hits");
+                if (inner.isArray() && !inner.isEmpty()) inner.forEach(passages::add);
+                else passages.add(hit);
+            }
+            return validSources(userId, passages, limit);
+        }
         Map<String, Object> filter = Map.of("bool", Map.of("filter", filters));
         JsonNode keyword = es.post().uri(INDEX + "/_search").body(Map.of(
-                "size", 20, "query", Map.of("bool", Map.of("must", Map.of("match", Map.of("content", Map.of("query", query, "operator", "and"))), "filter", filters))))
+                "size", 20, "query", Map.of("bool", Map.of("must", Map.of("match", Map.of("content", Map.of("query", query, "minimum_should_match", "70%"))), "filter", filters))))
                 .retrieve().body(JsonNode.class);
         JsonNode vector = es.post().uri(INDEX + "/_search").body(Map.of(
                 "size", 20, "knn", Map.of("field", "vector", "query_vector", embed(query),
@@ -101,9 +114,18 @@ public class AiSearchService {
         addRanked(vector, scores, hits);
         List<String> ranked = scores.entrySet().stream().sorted(Map.Entry.<String, Double>comparingByValue().reversed())
                 .map(Map.Entry::getKey).toList();
+        return validSources(userId, ranked.stream().map(hits::get).toList(), limit);
+    }
+
+    private boolean isSummaryQuestion(String query) {
+        return List.of("讲了啥", "讲了什么", "说了什么", "总结", "概括", "摘要", "主要内容", "内容是什么", "概述")
+                .stream().anyMatch(query::contains);
+    }
+
+    private List<Source> validSources(Long userId, List<JsonNode> ranked, int limit) {
         List<Source> result = new ArrayList<>();
-        for (String id : ranked) {
-            JsonNode source = hits.get(id).path("_source");
+        for (JsonNode hit : ranked) {
+            JsonNode source = hit.path("_source");
             long fileId = source.path("fileId").asLong();
             FileInfo file = files.findByIdAndUserId(fileId, userId);
             if (file == null || file.getFilePath() == null || file.getFilePath().isEmpty()

@@ -21,3 +21,19 @@ test('SSE parser handles split CRLF frames and error events', async () => {
     ])
   } finally { globalThis.fetch = previousFetch }
 })
+
+test('stream sends selected file IDs and exposes share errors', async () => {
+  const previousFetch = globalThis.fetch
+  let request
+  globalThis.fetch = async (_path, options) => {
+    request = JSON.parse(options.body)
+    return new Response(JSON.stringify({ message: '提取码错误' }), {
+      status: 400, headers: { 'Content-Type': 'application/json' }
+    })
+  }
+  try {
+    await assert.rejects(stream('/s/example/ai/chat', '讲了啥', () => {}, 'wrong', [1, 3]), /提取码错误/)
+    assert.deepEqual(request.fileIds, [1, 3])
+    assert.equal(request.password, 'wrong')
+  } finally { globalThis.fetch = previousFetch }
+})

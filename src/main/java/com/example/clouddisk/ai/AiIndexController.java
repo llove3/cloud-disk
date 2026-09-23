@@ -6,6 +6,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 import java.util.Map;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/ai/index")
@@ -22,6 +23,12 @@ public class AiIndexController {
         return Map.of("ready", statuses.stream().filter("DONE"::equals).count(),
                 "processing", statuses.stream().filter(s -> s.equals("PENDING") || s.equals("RUNNING") || s.equals("RETRY")).count(),
                 "failed", statuses.stream().filter("FAILED"::equals).count());
+    }
+    public record ReadyFile(Long id, String fileName) {}
+    @GetMapping("/ready-files")
+    public List<ReadyFile> readyFiles(HttpSession session) {
+        return taskMapper.findReadyFilesForUser(userId(session)).stream()
+                .map(file -> new ReadyFile(file.getId(), file.getFileName())).toList();
     }
     @GetMapping("/{fileId}")
     public AiIndexTask status(@PathVariable Long fileId, HttpSession session) {

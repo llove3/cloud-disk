@@ -21,6 +21,12 @@ public interface AiIndexTaskMapper {
             "WHERE f.user_id = #{userId} AND f.deleted = 0 AND f.file_path <> ''")
     List<String> findLatestStatusesForUser(@Param("userId") Long userId);
 
+    @Select("SELECT f.id, f.file_name FROM file f JOIN ai_index_task t ON t.id = " +
+            "(SELECT MAX(id) FROM ai_index_task WHERE file_id = f.id) " +
+            "WHERE f.user_id = #{userId} AND f.deleted = 0 AND f.file_path <> '' " +
+            "AND t.status = 'DONE' AND t.generation = f.index_generation ORDER BY f.file_name")
+    List<com.example.clouddisk.entity.FileInfo> findReadyFilesForUser(@Param("userId") Long userId);
+
     @Select("SELECT * FROM ai_index_task WHERE status IN ('PENDING','RETRY') ORDER BY id LIMIT 100")
     List<AiIndexTask> findPending();
 
